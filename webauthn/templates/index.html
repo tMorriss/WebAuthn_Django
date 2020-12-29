@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebAuthnテスト</title>
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <script src="{% static 'jquery-3.5.1.min.js' %}"></script>
+    <script>
+        function attestation_options(options) {
+            return $.post({
+                url: "/attestation/options",
+                data: JSON.stringify(options),
+                contentType: 'application/json'
+            })
+        }
+
+        function base64UrlEncode(data) {
+            return btoa(data).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        function base64UrlDecode(encoded) {
+            return atob(encoded.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(encoded.length % 4));
+        }
+
+        function bufferToBase64Url(buffer) {
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        function bufferToString(buffer) {
+            return String.fromCharCode.apply(null, new Uint8Array(buffer));
+        }
+
+        function attestation_result(rawCredential) {
+            credential = {
+                id: rawCredential.id,
+                response: {
+                    // attestationObject: base64UrlEncode(bufferToString(rawCredential.response.attestationObject)),
+                    attestationObject: bufferToBase64Url(rawCredential.response.attestationObject),
+                    clientDataJSON: base64UrlEncode(bufferToString(rawCredential.response.clientDataJSON))
+                },
+                type: rawCredential.type
+            }
+            return $.post({
+                url: "/attestation/result",
+                data: JSON.stringify(credential),
+                contentType: 'application/json'
+            })
+        }
+
+        async function registerWithUVPAA() {
+            $('#resultMsg').text()
+            // FIDO対応か確認
+            PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
+            ).then((result) => {
+                if (result) {
+                    var options = {
+                        "email": $("#register_email").val(),
+                    }
+                    // optionsリクエスト
+                    return attestation_options(options);
+                }
+            }).then((response) => {
+                // レスポンスをデコード
+                options = JSON.parse(response);
+                options.user.id = new TextEncoder().encode(options.user.id);
+                options.challenge = new TextEncoder().encode(options.challenge);
+                // 鍵生成
+                return navigator.credentials.create({ publicKey: options });
+            }).then((credential) => {
+                // resultリクエスト
+                return attestation_result(credential);
+            }).then((response) => {
+                console.log(response);
+                $('#resultMsg').text(response);
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <input type="email" id="register_email" value="tmorriss@tmorriss.com" />
+    <button onclick="registerWithUVPAA()">attestation/options</button>
+    <button onclick="createTest()">test</button><br>
+    <div id="resultMsg"></div>
+</body>
+
+</html>
