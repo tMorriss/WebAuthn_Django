@@ -50,13 +50,13 @@
         }
 
         async function registerWithUVPAA() {
-            $('#resultMsg').text()
+            $('#resultMsg').text("")
             // FIDO対応か確認
             PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
             ).then((result) => {
                 if (result) {
                     var options = {
-                        "email": $("#register_email").val(),
+                        "username": $("#register_username").val(),
                     }
                     // optionsリクエスト
                     return attestation_options(options);
@@ -80,7 +80,7 @@
 </head>
 
 <body>
-    <input type="email" id="register_email" value="tmorriss@tmorriss.com" />
+    <input type="username" id="register_username" value="tMorriss" />
     <button onclick="registerWithUVPAA()">attestation/options</button>
     <button onclick="createTest()">test</button><br>
     <div id="resultMsg"></div>

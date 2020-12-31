@@ -1,11 +1,14 @@
-from django.shortcuts import render
+from datetime import timedelta
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from webauthn.lib.utils import generateId, stringToBase64Url
-from webauthn.lib.values import Values
 from webauthn.lib.attestationObject import AttestationObject
 from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
+from webauthn.lib.utils import generateId, stringToBase64Url
+from webauthn.lib.values import Values
+from webauthn.models import Key, Session
 import json
 
 
@@ -21,20 +24,24 @@ def attestation_options(request):
 
     post_data = json.loads(request.body)
 
-    if "email" not in post_data:
-        return json.dumps({"status": "error"})
-    email = post_data["email"]
-    user_id = generateId(64)
-    challenge = generateId(16)
+    if "username" not in post_data:
+        return HttpResponseBadRequest(json.dumps({"status": "error"}))
+    username = post_data["username"]
+
+    # 名前が長かったらエラー
+    if len(username) > Values.USERNAME_MAX_LENGTH:
+        return HttpResponseBadRequest("Invalid Value (username length)")
+
+    challenge = generateId(Values.CHALLENGE_LENGTH)
     options = {
         "rp": {
             "id": Values.RP_ID,
             "name": "tmorriss.com"
         },
         "user": {
-            "id": user_id,
-            "name": email,
-            "displayName": email
+            "id": username,
+            "name": username,
+            "displayName": username
         },
         "challenge": challenge,
         "pubKeyCredParams": [],
@@ -54,9 +61,14 @@ def attestation_options(request):
         })
 
     # challengeの保存
-    f = open(stringToBase64Url(challenge) + '.challenge', 'w')
-    f.write(json.dumps({"id": user_id, "name": email}))
-    f.close
+    now = timezone.now()
+    Session.objects.create(challenge=stringToBase64Url(challenge),
+                           username=username, time=now)
+
+    # 古いセッションを削除
+    for s in Session.objects.all():
+        if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            s.delete()
 
     return HttpResponse(json.dumps(options))
 
@@ -98,6 +110,13 @@ def attestation_result(request):
 
         # attStmtの検証
         attestationObject.validateAttStmt(clientData.hash)
+
+        # すでに登録済みか確認
+        if Key.objects.filter(credentialId=attestationObject.credentialId).count() != 0:
+            raise InvalidValueException("already registered")
+
+        # 保存
+        # Key.objects.create(username, attestationObject.credentialId, attestationObject.pubKey)
 
     except FormatException as e:
         return HttpResponseBadRequest("Format Error (" + str(e) + ")")

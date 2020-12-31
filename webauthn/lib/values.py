@@ -5,3 +5,7 @@ class Values:
 
     ALG_LIST = {'RS256': -257}
     KTY_RSA = 3
+
+    CHALLENGE_LENGTH = 16
+    USERNAME_MAX_LENGTH = 30
+    SESSION_TIMEOUT_MINUTE = 5

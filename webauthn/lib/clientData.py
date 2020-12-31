@@ -1,9 +1,11 @@
-from webauthn.lib.utils import base64UrlDecode
-from webauthn.lib.exceptions import FormatException, InvalidValueException
-from webauthn.lib.values import Values
-import json
-import os
 import hashlib
+import json
+from webauthn.models import Session
+from webauthn.lib.values import Values
+from webauthn.lib.exceptions import FormatException, InvalidValueException
+from webauthn.lib.utils import base64UrlDecode
+from django.utils import timezone
+from datetime import timedelta
 
 
 class ClientData:
@@ -31,15 +33,20 @@ class ClientData:
 
         # challengeの確認
         self.challenge = self.clientDataJson['challenge']
-        filepath = self.challenge + ".challenge"
-        if not os.path.exists(filepath):
+        session = Session.objects.filter(challenge=self.challenge)
+        if session.count() != 1:
             raise InvalidValueException("clientDataJson.challenge")
+        session = session.first()
 
-        # user.id, user.nameの読み込み
-        f = open(filepath, 'r')
-        session = f.read()
-        f.close()
-        os.remove(filepath)
+        # 時刻確認
+        if session.time >= timezone.now() + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            raise InvalidValueException("session timeout")
+
+        # 名前を取り出す
+        self.username = session.username
+
+        # session削除
+        session.delete()
 
         # originの確認
         if self.clientDataJson['origin'] != Values.ORIGIN:

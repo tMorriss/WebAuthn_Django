@@ -1,4 +1,4 @@
-from webauthn.lib.utils import base64UrlDecode
+from webauthn.lib.utils import base64UrlDecode, bytesToBase64Url
 from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
 from webauthn.lib.values import Values
 import cbor2
@@ -66,7 +66,8 @@ class AttestationObject:
 
         credentialIdLength = int.from_bytes(
             self.authData[53:55], byteorder='big')
-        credentialId = self.authData[55:55 + credentialIdLength]
+        self.credentialId = bytesToBase64Url(
+            self.authData[55:55 + credentialIdLength])
         self.rawPkey = self.authData[55 + credentialIdLength:]
 
     def validate(self):
@@ -110,7 +111,7 @@ class AttestationObject:
             raise UnsupportedException("attestationObject.fmt=" + self.fmt)
 
         dataToVerify = self.authData + clientDataHash
-        pubKey = self.extractPubKey()
+        self.credentialPublicKey = self.extractPubKey()
 
         # それぞれのattStmtの検証
-        attStmt.validate(dataToVerify, pubKey)
+        attStmt.validate(dataToVerify, self.credentialPublicKey)
