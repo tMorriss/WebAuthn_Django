@@ -26,27 +26,15 @@ class ClientData:
             raise FormatException("clientDataJson.type")
         if 'challenge' not in self.clientDataJson:
             raise FormatException("clientDataJson.challenge")
+        if 'origin' not in self.clientDataJson:
+            raise FormatException("clientDataJson.origin")
 
         # typeの確認
         if self.clientDataJson['type'] != 'webauthn.create':
             raise InvalidValueException("clientDataJson.type")
 
-        # challengeの確認
+        # challengeを取り出す
         self.challenge = self.clientDataJson['challenge']
-        session = Session.objects.filter(challenge=self.challenge)
-        if session.count() != 1:
-            raise InvalidValueException("clientDataJson.challenge")
-        session = session.first()
-
-        # 時刻確認
-        if session.time >= timezone.now() + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
-            raise InvalidValueException("session timeout")
-
-        # 名前を取り出す
-        self.username = session.username
-
-        # session削除
-        session.delete()
 
         # originの確認
         if self.clientDataJson['origin'] != Values.ORIGIN:

@@ -97,6 +97,8 @@ def attestation_result(request):
         clientData = ClientData(response['clientDataJSON'])
         # 検証
         clientData.validate()
+        # challenge取得
+        challenge = clientData.challenge
 
         # AttestationObjectの読み込み
         try:
@@ -115,8 +117,27 @@ def attestation_result(request):
         if Key.objects.filter(credentialId=attestationObject.credentialId).count() != 0:
             raise InvalidValueException("already registered")
 
+        # challengeの確認
+        session = Session.objects.filter(challenge=challenge)
+        if session.count() != 1:
+            raise InvalidValueException("clientDataJson.challenge")
+        session = session.first()
+
+        # 時刻確認
+        now = timezone.now()
+        if session.time >= now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            raise InvalidValueException("session timeout")
+
+        # 名前を取り出す
+        username = session.username
+
+        # session削除
+        session.delete()
+
         # 保存
-        # Key.objects.create(username, attestationObject.credentialId, attestationObject.pubKey)
+        Key.objects.create(username=username, credentialId=attestationObject.credentialId,
+                           credentialPublicKey=attestationObject.credentialPublicKey,
+                           signCount=attestationObject.signCount, regTime=now)
 
     except FormatException as e:
         return HttpResponseBadRequest("Format Error (" + str(e) + ")")
