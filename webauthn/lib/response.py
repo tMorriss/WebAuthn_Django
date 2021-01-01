@@ -3,15 +3,19 @@ import json
 
 class Response:
     @staticmethod
-    def json(code, msg):
-        return json.dumps({
+    def json(code, msg, username=None):
+        response = {
             "statusCode": code,
             "statusMessage": msg
-        })
+        }
+        if username is not None:
+            response["username"] = username
+
+        return json.dumps(response)
 
     @staticmethod
-    def success():
-        return Response.json("2000", "success")
+    def success(username):
+        return Response.json("2000", "success", username)
 
     @staticmethod
     def formatError(msg):

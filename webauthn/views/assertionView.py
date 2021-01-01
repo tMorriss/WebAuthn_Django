@@ -128,7 +128,7 @@ def assertion_result(request):
         pubKey.signCount = authData.signCount
         pubKey.save()
 
-        return HttpResponse(Response.success())
+        return HttpResponse(Response.success(username))
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
