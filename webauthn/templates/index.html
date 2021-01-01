@@ -64,6 +64,10 @@
             }).then((response) => {
                 // レスポンスをデコード
                 options = JSON.parse(response);
+                if (options.statusCode != "2000") {
+                    $('#resultMsg').text(response)
+                    return
+                }
                 options.user.id = new TextEncoder().encode(options.user.id);
                 options.challenge = new TextEncoder().encode(options.challenge);
                 // 鍵生成
