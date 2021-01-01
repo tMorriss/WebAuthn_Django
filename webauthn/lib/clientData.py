@@ -17,7 +17,7 @@ class ClientData:
         except json.decoder.JSONDecodeError:
             raise FormatException('clientDataJSON')
 
-    def validate(self):
+    def __validate(self, function):
         # 存在確認
         if 'type' not in self.clientDataJson:
             raise FormatException("clientDataJson.type")
@@ -27,7 +27,7 @@ class ClientData:
             raise FormatException("clientDataJson.origin")
 
         # typeの確認
-        if self.clientDataJson['type'] != 'webauthn.create':
+        if self.clientDataJson['type'] != 'webauthn.' + function:
             raise InvalidValueException("clientDataJson.type")
 
         # challengeを取り出す
@@ -36,3 +36,9 @@ class ClientData:
         # originの確認
         if self.clientDataJson['origin'] != Values.ORIGIN:
             raise InvalidValueException("clientDataJson.origin")
+
+    def validateCreate(self):
+        self.__validate("create")
+
+    def validateGet(self):
+        self.__validate("get")

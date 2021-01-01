@@ -1,11 +1,10 @@
-from webauthn.lib.utils import base64UrlDecode, bytesToBase64Url
+from webauthn.lib.utils import base64UrlDecode
 from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
 from webauthn.lib.values import Values
+from webauthn.lib.authData import AuthData
+from webauthn.lib.publicKey import PublicKey
 import cbor2
-import hashlib
 from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
-from Crypto.Signature import pkcs1_15
 
 
 class AttestationStatement:
@@ -30,10 +29,8 @@ class Packed(AttestationStatement):
             return False
 
         if "x5c" not in self.attStmt:
-            h = SHA256.new(dataToVerify)
-            try:
-                pkcs1_15.new(pubKey).verify(h, self.attStmt['sig'])
-            except ValueError:
+            if not PublicKey.verify(pubKey, dataToVerify,
+                                    self.attStmt['sig'], self.alg):
                 raise InvalidValueException("attStmt.sig")
         else:
             raise UnsupportedException("packed with x5c")
@@ -54,43 +51,15 @@ class AttestationObject:
 
         self.fmt = cbor['fmt']
         self.attStmt = cbor['attStmt']
+        self.authData = AuthData(cbor['authData'])
 
-        self.authData = cbor['authData']
-        self.rpIdHash = self.authData[0:32]
-        flags = self.authData[32:33]
-        self.up = (1 & int.from_bytes(flags, byteorder='big')) == 1
-        self.uv = (4 & int.from_bytes(flags, byteorder='big')) == 4
-        self.signCount = int.from_bytes(
-            self.authData[33:37], byteorder='big')
-        self.aaguid = self.authData[37:53]
-
-        credentialIdLength = int.from_bytes(
-            self.authData[53:55], byteorder='big')
-        self.credentialId = bytesToBase64Url(
-            self.authData[55:55 + credentialIdLength])
-        self.rawPkey = self.authData[55 + credentialIdLength:]
-
-    def validate(self):
-
-        # rpIdHashの確認
-        rpIdHash = hashlib.sha256(Values.RP_ID.encode('utf-8')).digest()
-        if rpIdHash != self.rpIdHash:
-            raise InvalidValueException("rpIdHash")
-
-        # UserPresentの確認
-        if not self.up:
-            raise InvalidValueException("up")
-
-        # UserVerifiedの確認
-        if not self.uv:
-            raise InvalidValueException("uv")
-
-    def extractPubKey(self):
-        pkey = cbor2.loads(self.rawPkey)
+    def __extractPubKey(self):
+        pkey = cbor2.loads(self.authData.rawPkey)
         if pkey.keys() <= {1, 3}:
             raise FormatException("pkey")
 
         if pkey[1] == Values.KTY_RSA and pkey[3] == Values.ALG_LIST['RS256']:
+            self.alg = pkey[3]
             # RSA256
             if pkey.keys() <= {- 1, -2}:
                 raise FormatException("rs256")
@@ -110,8 +79,8 @@ class AttestationObject:
         else:
             raise UnsupportedException("attestationObject.fmt=" + self.fmt)
 
-        dataToVerify = self.authData + clientDataHash
-        self.credentialPublicKey = self.extractPubKey()
+        dataToVerify = self.authData.authData + clientDataHash
+        self.credentialPublicKey = self.__extractPubKey()
 
         # それぞれのattStmtの検証
         attStmt.validate(dataToVerify, self.credentialPublicKey)

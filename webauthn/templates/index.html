@@ -67,6 +67,23 @@
             })
         }
 
+        function assertion_result(rawCredential) {
+            credential = {
+                id: rawCredential.id,
+                response: {
+                    authenticatorData: bufferToBase64Url(rawCredential.response.authenticatorData),
+                    clientDataJSON: bufferToBase64Url(rawCredential.response.clientDataJSON),
+                    signature: bufferToBase64Url(rawCredential.response.signature),
+                    userHandle: bufferToString(rawCredential.response.userHandle)
+                }
+            }
+            return $.post({
+                url: "/assertion/result",
+                data: JSON.stringify(credential),
+                contentType: 'application/json'
+            })
+        }
+
         async function registerWithUVPAA() {
             $('#resultMsg').text("")
             // FIDO対応か確認
@@ -94,7 +111,6 @@
                 // resultリクエスト
                 return attestation_result(credential);
             }).then((response) => {
-                console.log(response);
                 $('#resultMsg').text(response);
             });
         }
@@ -127,11 +143,9 @@
                 return navigator.credentials.get({ publicKey: options });
             }).then((credential) => {
                 // resultリクエスト
-                console.log(credential);
-                // return attestation_result(credential);
+                return assertion_result(credential);
             }).then((response) => {
-                // console.log(response);
-                // $('#resultMsg').text(response);
+                $('#resultMsg').text(response);
             });
         }
     </script>

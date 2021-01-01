@@ -5,6 +5,7 @@ from webauthn.lib.values import Values
 class Key(models.Model):
     username = models.CharField(max_length=50)
     credentialId = models.CharField(max_length=300)
+    alg = models.IntegerField(default=0)
     credentialPublicKey = models.CharField(max_length=500)
     signCount = models.IntegerField(default=0)
     regTime = models.DateTimeField()

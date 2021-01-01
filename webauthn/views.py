@@ -6,10 +6,13 @@ from django.views.decorators.csrf import csrf_exempt
 from webauthn.lib.attestationObject import AttestationObject
 from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
-from webauthn.lib.utils import generateId, stringToBase64Url
+from webauthn.lib.utils import generateId, stringToBase64Url, base64UrlDecode
 from webauthn.lib.values import Values
 from webauthn.models import Key, Session
 from webauthn.lib.response import Response
+from webauthn.lib.authData import AuthData
+from webauthn.lib.publicKey import PublicKey
+from Crypto.PublicKey import RSA
 import json
 
 
@@ -91,14 +94,14 @@ def attestation_result(request):
 
         # validate
         if 'clientDataJSON' not in response:
-            raise FormatException("clientDataJSON")
+            raise FormatException("response.clientDataJSON")
         if 'attestationObject' not in response:
-            raise FormatException("attestationObject")
+            raise FormatException("response.attestationObject")
 
         # clientDataの読み込み
         clientData = ClientData(response['clientDataJSON'])
         # 検証
-        clientData.validate()
+        clientData.validateCreate()
         # challenge取得
         challenge = clientData.challenge
 
@@ -109,14 +112,14 @@ def attestation_result(request):
         except UnicodeDecodeError:
             raise FormatException("attestationObject")
 
-        # AttestationObjectの検証
-        attestationObject.validate()
+        # authDataの検証
+        attestationObject.authData.validate()
 
         # attStmtの検証
         attestationObject.validateAttStmt(clientData.hash)
 
         # すでに登録済みか確認
-        if Key.objects.filter(credentialId=attestationObject.credentialId).count() != 0:
+        if Key.objects.filter(credentialId=attestationObject.authData.credentialId).count() != 0:
             raise InvalidValueException("already registered")
 
         # challengeの確認
@@ -138,9 +141,10 @@ def attestation_result(request):
         session.delete()
 
         # 保存
-        Key.objects.create(username=username, credentialId=attestationObject.credentialId,
-                           credentialPublicKey=attestationObject.credentialPublicKey,
-                           signCount=attestationObject.signCount, regTime=now)
+        Key.objects.create(username=username, credentialId=attestationObject.authData.credentialId,
+                           alg=attestationObject.alg,
+                           credentialPublicKey=attestationObject.credentialPublicKey.export_key().decode('utf-8'),
+                           signCount=attestationObject.authData.signCount, regTime=now)
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
@@ -189,3 +193,79 @@ def assertion_options(request):
                            username=username, time=now, function="assertion")
 
     return HttpResponse(json.dumps(options))
+
+
+@csrf_exempt
+def assertion_result(request):
+    try:
+        # POSTのみ受付
+        if request.method != 'POST':
+            raise FormatException("http method")
+
+        post_data = json.loads(request.body)
+
+        # response読み込み
+        if 'response' not in post_data:
+            raise FormatException("response")
+        response = post_data['response']
+
+        # validate
+        if 'authenticatorData' not in response:
+            raise FormatException("response.authenticatorData")
+        if 'clientDataJSON' not in response:
+            raise FormatException("response.clientDataJSON")
+        if 'signature' not in response:
+            raise FormatException("response.signature")
+        if 'userHandle' not in response:
+            raise FormatException("response.userHandle")
+
+        # username確認
+        username = response['userHandle']
+        credentials = Key.objects.filter(username=username)
+        if credentials.count() < 1:
+            raise InvalidValueException('response.userHandle')
+
+        # credentialIdの確認
+        if 'id' not in post_data:
+            raise FormatException("id")
+        isExist = False
+        for c in credentials:
+            if c.credentialId == post_data['id']:
+                isExist = True
+        if not isExist:
+            raise InvalidValueException("id")
+
+        # clientDataの読み込み
+        clientData = ClientData(response['clientDataJSON'])
+        # 検証
+        clientData.validateGet()
+        # challenge取得
+        challenge = clientData.challenge
+
+        # challengeの確認
+        session = Session.objects.filter(
+            challenge=challenge, function="assertion")
+        if session.count() != 1:
+            raise InvalidValueException("clientDataJson.challenge")
+        session = session.first()
+
+        # authenticatorDataの検証
+        authData = AuthData(base64UrlDecode(response['authenticatorData']))
+        authData.validate()
+
+        # 公開鍵の検証
+        pubKey = Key.objects.filter(credentialId=post_data['id'])[0]
+        dataToVerify = authData.authData + clientData.hash
+        if not PublicKey.verify(
+                RSA.import_key(pubKey.credentialPublicKey),
+                dataToVerify,
+                base64UrlDecode(response['signature']),
+                pubKey.alg):
+            raise InvalidValueException('response.signature')
+
+        return HttpResponse(Response.success())
+
+    except FormatException as e:
+        return HttpResponse(Response.formatError(str(e)))
+    except InvalidValueException as e:
+        return HttpResponse(Response.invalidValueError(str(e)))
