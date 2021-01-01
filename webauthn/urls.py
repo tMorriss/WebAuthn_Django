@@ -1,5 +1,7 @@
 from django.urls import path
-from webauthn.views import index, attestation_options, attestation_result, assertion_options, assertion_result
+from webauthn.views.indexView import index
+from webauthn.views.attestationView import attestation_options, attestation_result
+from webauthn.views.assertionView import assertion_options, assertion_result
 
 urlpatterns = [
     path('', index, name='index'),

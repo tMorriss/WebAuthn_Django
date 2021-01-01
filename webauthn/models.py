@@ -7,7 +7,7 @@ class Key(models.Model):
     credentialId = models.CharField(max_length=300)
     alg = models.IntegerField(default=0)
     credentialPublicKey = models.CharField(max_length=500)
-    signCount = models.IntegerField(default=0)
+    signCount = models.IntegerField(default=None)
     regTime = models.DateTimeField()
 
 
