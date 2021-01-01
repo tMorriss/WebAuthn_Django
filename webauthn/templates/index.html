@@ -13,7 +13,17 @@
         }
 
         function base64UrlDecode(encoded) {
-            return atob(encoded.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(encoded.length % 4));
+            return atob(encoded.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(4 - encoded.length % 4));
+        }
+
+        function base64UrlToBuffer(base64) {
+            let binary = atob(base64.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(4 - base64.length % 4));
+            let len = binary.length;
+            let bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes
         }
 
         function bufferToBase64Url(buffer) {
@@ -36,15 +46,23 @@
             credential = {
                 id: rawCredential.id,
                 response: {
-                    // attestationObject: base64UrlEncode(bufferToString(rawCredential.response.attestationObject)),
                     attestationObject: bufferToBase64Url(rawCredential.response.attestationObject),
-                    clientDataJSON: base64UrlEncode(bufferToString(rawCredential.response.clientDataJSON))
+                    clientDataJSON: base64UrlEncode(bufferToString(rawCredential.response.clientDataJSON)),
+                    transports: rawCredential.response.getTransports()
                 },
                 type: rawCredential.type
             }
             return $.post({
                 url: "/attestation/result",
                 data: JSON.stringify(credential),
+                contentType: 'application/json'
+            })
+        }
+
+        function assertion_options(options) {
+            return $.post({
+                url: "/assertion/options",
+                data: JSON.stringify(options),
                 contentType: 'application/json'
             })
         }
@@ -80,12 +98,49 @@
                 $('#resultMsg').text(response);
             });
         }
+
+        function authWithUVPAA() {
+            $('#resultMsg').text("");
+            // FIDO対応か確認
+            PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
+            ).then((result) => {
+                if (result) {
+                    var options = {
+                        "username": $("#register_username").val(),
+                    }
+                    // optionsリクエスト
+                    return assertion_options(options);
+                }
+            }).then((response) => {
+                // レスポンスをデコード
+                options = JSON.parse(response);
+                if (options.statusCode != "2000") {
+                    $('#resultMsg').text(response);
+                    return;
+                }
+                options.challenge = new TextEncoder().encode(options.challenge);
+                for (let i = 0; i < options.allowCredentials.length; i++) {
+                    options.allowCredentials[i].id = base64UrlToBuffer(options.allowCredentials[i].id);
+                }
+
+                // 鍵生成
+                return navigator.credentials.get({ publicKey: options });
+            }).then((credential) => {
+                // resultリクエスト
+                console.log(credential);
+                // return attestation_result(credential);
+            }).then((response) => {
+                // console.log(response);
+                // $('#resultMsg').text(response);
+            });
+        }
     </script>
 </head>
 
 <body>
-    <input type="username" id="register_username" value="tMorriss" />
-    <button onclick="registerWithUVPAA()">attestation/options</button>
+    <input type="username" id="register_username" value="tMorriss" /><br>
+    <button onclick="registerWithUVPAA()">登録</button><br>
+    <button onclick="authWithUVPAA()">認証</button><br>
     <div id="resultMsg"></div>
 </body>
 

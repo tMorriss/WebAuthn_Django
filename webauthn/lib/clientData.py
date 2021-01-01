@@ -1,11 +1,8 @@
 import hashlib
 import json
-from webauthn.models import Session
 from webauthn.lib.values import Values
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.utils import base64UrlDecode
-from django.utils import timezone
-from datetime import timedelta
 
 
 class ClientData:

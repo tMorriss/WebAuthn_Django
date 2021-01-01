@@ -14,3 +14,4 @@ class Session(models.Model):
     challenge = models.CharField(max_length=Values.CHALLENGE_LENGTH)
     username = models.CharField(max_length=Values.USERNAME_MAX_LENGTH)
     time = models.DateTimeField()
+    function = models.CharField(max_length=11)

@@ -35,7 +35,7 @@ def attestation_options(request):
 
     challenge = generateId(Values.CHALLENGE_LENGTH)
     options = {
-        "statusCode": Values.CODE_SUCCESS,
+        "statusCode": Values.SUCCESS_CODE,
         "rp": {
             "id": Values.RP_ID,
             "name": "tmorriss.com"
@@ -65,7 +65,7 @@ def attestation_options(request):
     # challengeの保存
     now = timezone.now()
     Session.objects.create(challenge=stringToBase64Url(challenge),
-                           username=username, time=now)
+                           username=username, time=now, function="attestation")
 
     # 古いセッションを削除
     for s in Session.objects.all():
@@ -120,7 +120,8 @@ def attestation_result(request):
             raise InvalidValueException("already registered")
 
         # challengeの確認
-        session = Session.objects.filter(challenge=challenge)
+        session = Session.objects.filter(
+            challenge=challenge, function="attestation")
         if session.count() != 1:
             raise InvalidValueException("clientDataJson.challenge")
         session = session.first()
@@ -149,3 +150,42 @@ def attestation_result(request):
         return HttpResponse(Response.unsupportedError(str(e)))
 
     return HttpResponse(Response.success())
+
+
+@csrf_exempt
+def assertion_options(request):
+    # POSTのみ受付
+    if request.method != 'POST':
+        return HttpResponse(Response.formatError("http method"))
+
+    post_data = json.loads(request.body)
+
+    if "username" not in post_data:
+        return HttpResponse(Response.formatError("username"))
+    username = post_data["username"]
+
+    challenge = generateId(Values.CHALLENGE_LENGTH)
+    options = {
+        "statusCode": Values.SUCCESS_CODE,
+        "challenge": challenge,
+        "timeout": Values.CREDENTIAL_TIMEOUT_MICROSECOND,
+        "rpId": Values.RP_ID,
+        "allowCredentials": [],
+        "userVerification": "required"
+    }
+
+    # AllowCredentials
+    credentials = Key.objects.filter(username=username)
+    for c in credentials:
+        options['allowCredentials'].append({
+            "type": "public-key",
+            "id": c.credentialId,
+            "transports": ["internal"]
+        })
+
+    # challengeの保存
+    now = timezone.now()
+    Session.objects.create(challenge=stringToBase64Url(challenge),
+                           username=username, time=now, function="assertion")
+
+    return HttpResponse(json.dumps(options))
