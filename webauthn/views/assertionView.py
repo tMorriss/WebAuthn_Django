@@ -78,8 +78,8 @@ def assertion_result(request):
             raise FormatException("response.userHandle")
 
         # username確認
-        username = response['userHandle']
-        credentials = Key.objects.filter(username=username)
+        userid = response['userHandle']
+        credentials = Key.objects.filter(userid=userid)
         if credentials.count() < 1:
             raise InvalidValueException('response.userHandle')
 
@@ -87,9 +87,11 @@ def assertion_result(request):
         if 'id' not in post_data:
             raise FormatException("id")
         isExist = False
+        username = ""
         for c in credentials:
             if c.credentialId == post_data['id']:
                 isExist = True
+                username = c.username
         if not isExist:
             raise InvalidValueException("id")
 

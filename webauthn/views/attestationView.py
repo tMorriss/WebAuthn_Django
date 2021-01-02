@@ -10,6 +10,7 @@ from webauthn.lib.values import Values
 from webauthn.models import Key, Session
 from webauthn.lib.response import Response
 import json
+import hashlib
 
 
 @csrf_exempt
@@ -23,6 +24,7 @@ def attestation_options(request):
     if "username" not in post_data:
         return HttpResponse(Response.formatError("username"))
     username = post_data["username"]
+    userid = hashlib.sha256(username.encode('utf-8')).hexdigest()
 
     # 名前が長かったらエラー
     if len(username) > Values.USERNAME_MAX_LENGTH:
@@ -36,7 +38,7 @@ def attestation_options(request):
             "name": "tmorriss.com"
         },
         "user": {
-            "id": username,
+            "id": userid,
             "name": username,
             "displayName": username
         },
@@ -70,7 +72,7 @@ def attestation_options(request):
         # challengeの保存
     now = timezone.now()
     Session.objects.create(challenge=stringToBase64Url(challenge),
-                           username=username, time=now, function="attestation")
+                           username=username, userid=userid, time=now, function="attestation")
 
     # 古いセッションを削除
     for s in Session.objects.all():
@@ -136,19 +138,16 @@ def attestation_result(request):
         if session.time >= now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
             raise InvalidValueException("session timeout")
 
-        # 名前を取り出す
-        username = session.username
-
         # session削除
         session.delete()
 
         # 保存
-        Key.objects.create(username=username, credentialId=attestationObject.authData.credentialId,
-                           alg=attestationObject.alg,
+        Key.objects.create(username=session.username, userid=session.userid,
+                           credentialId=attestationObject.authData.credentialId, alg=attestationObject.alg,
                            credentialPublicKey=attestationObject.credentialPublicKey.export_key().decode('utf-8'),
                            signCount=attestationObject.authData.signCount, regTime=now)
 
-        return HttpResponse(Response.success(username))
+        return HttpResponse(Response.success(session.username))
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
