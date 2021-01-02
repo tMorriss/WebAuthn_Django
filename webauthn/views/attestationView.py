@@ -29,6 +29,9 @@ def attestation_options(request):
     # 名前が長かったらエラー
     if len(username) > Values.USERNAME_MAX_LENGTH:
         return HttpResponse(Response.invalidValueError("username length"))
+    # 名前が空だったらエラー
+    if len(username) < 1:
+        return HttpResponse(Response.invalidValueError("empty username"))
 
     challenge = generateId(Values.CHALLENGE_LENGTH)
     options = {
