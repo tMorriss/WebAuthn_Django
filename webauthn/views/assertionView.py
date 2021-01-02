@@ -21,10 +21,6 @@ def assertion_options(request):
 
     post_data = json.loads(request.body)
 
-    if "username" not in post_data:
-        return HttpResponse(Response.formatError("username"))
-    username = post_data["username"]
-
     challenge = generateId(Values.CHALLENGE_LENGTH)
     options = {
         "statusCode": Values.SUCCESS_CODE,
@@ -35,14 +31,19 @@ def assertion_options(request):
         "userVerification": "required"
     }
 
-    # AllowCredentials
-    credentials = Key.objects.filter(username=username)
-    for c in credentials:
-        options['allowCredentials'].append({
-            "type": "public-key",
-            "id": c.credentialId,
-            "transports": ["internal"]
-        })
+    username = ""
+
+    # 名前がときはallowCredentialsを入れる
+    # 指定されていないときはresidentKey
+    if "username" in post_data:
+        username = post_data['username']
+        credentials = Key.objects.filter(username=username)
+        for c in credentials:
+            options['allowCredentials'].append({
+                "type": "public-key",
+                "id": c.credentialId,
+                "transports": ["internal"]
+            })
 
     # challengeの保存
     now = timezone.now()

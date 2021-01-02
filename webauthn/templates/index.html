@@ -105,11 +105,19 @@
                 }
                 options.user.id = new TextEncoder().encode(options.user.id);
                 options.challenge = new TextEncoder().encode(options.challenge);
+                for (let i = 0; i < options.excludeCredentials.length; i++) {
+                    options.excludeCredentials[i].id = base64UrlToBuffer(options.excludeCredentials[i].id)
+                }
                 // 鍵生成
                 return navigator.credentials.create({ publicKey: options });
             }).then((credential) => {
                 // resultリクエスト
                 return attestation_result(credential);
+            }).catch(e => {
+                if (e.name == "InvalidStateError" && e.message == "The user attempted to register an authenticator that contains one of the credentials already registered with the relying party.") {
+                    $('#resultMsg').text("二重登録エラー");
+                    return;
+                }
             }).then((response) => {
                 $('#resultMsg').text(response);
             });
@@ -121,8 +129,9 @@
             PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
             ).then((result) => {
                 if (result) {
-                    var options = {
-                        "username": $("#register_username").val(),
+                    var options = {}
+                    if ($("#register_username").val() != "") {
+                        options["username"] = $("#register_username").val()
                     }
                     // optionsリクエスト
                     return assertion_options(options);

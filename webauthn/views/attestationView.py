@@ -43,6 +43,7 @@ def attestation_options(request):
         "challenge": challenge,
         "pubKeyCredParams": [],
         "timeout": Values.CREDENTIAL_TIMEOUT_MICROSECOND,
+        "excludeCredentials": [],
         "authenticatorSelection": {
             "authenticatorAttachment": "platform",
             "requireResidentKey": False,
@@ -57,7 +58,16 @@ def attestation_options(request):
             "alg": alg
         })
 
-    # challengeの保存
+    # excludeCredentials
+    excludeCredentials = Key.objects.filter(username=username)
+    for c in excludeCredentials:
+        options["excludeCredentials"].append({
+            "type": "public-key",
+            "id": c.credentialId,
+            "transports": ["internal"]
+        })
+
+        # challengeの保存
     now = timezone.now()
     Session.objects.create(challenge=stringToBase64Url(challenge),
                            username=username, time=now, function="attestation")
@@ -138,11 +148,11 @@ def attestation_result(request):
                            credentialPublicKey=attestationObject.credentialPublicKey.export_key().decode('utf-8'),
                            signCount=attestationObject.authData.signCount, regTime=now)
 
+        return HttpResponse(Response.success(username))
+
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
     except InvalidValueException as e:
         return HttpResponse(Response.invalidValueError(str(e)))
     except UnsupportedException as e:
         return HttpResponse(Response.unsupportedError(str(e)))
-
-    return HttpResponse(Response.success())
