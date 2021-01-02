@@ -72,7 +72,7 @@ def attestation_options(request):
             "transports": ["internal"]
         })
 
-        # challengeの保存
+    # challengeの保存
     now = timezone.now()
     Session.objects.create(challenge=stringToBase64Url(challenge),
                            username=username, userid=userid, time=now, function="attestation")

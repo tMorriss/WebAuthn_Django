@@ -33,7 +33,7 @@ def assertion_options(request):
 
     username = ""
 
-    # 名前がときはallowCredentialsを入れる
+    # 名前が渡ってきたときはallowCredentialsを入れる
     # 指定されていないときはresidentKey
     if "username" in post_data:
         username = post_data['username']
