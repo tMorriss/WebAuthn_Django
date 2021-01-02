@@ -42,7 +42,7 @@ def assertion_options(request):
             options['allowCredentials'].append({
                 "type": "public-key",
                 "id": c.credentialId,
-                "transports": ["internal"]
+                "transports": json.loads(c.transports)
             })
 
     # challengeの保存

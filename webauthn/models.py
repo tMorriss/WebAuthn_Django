@@ -9,6 +9,7 @@ class Key(models.Model):
     alg = models.IntegerField(default=0)
     credentialPublicKey = models.CharField(max_length=500)
     signCount = models.IntegerField(default=None)
+    transports = models.CharField(max_length=100, default="")
     regTime = models.DateTimeField()
 
 

@@ -104,6 +104,8 @@ def attestation_result(request):
             raise FormatException("response.clientDataJSON")
         if 'attestationObject' not in response:
             raise FormatException("response.attestationObject")
+        if 'transports' not in response:
+            raise FormatException("response.transports")
 
         # clientDataの読み込み
         clientData = ClientData(response['clientDataJSON'])
@@ -148,7 +150,8 @@ def attestation_result(request):
         Key.objects.create(username=session.username, userid=session.userid,
                            credentialId=attestationObject.authData.credentialId, alg=attestationObject.alg,
                            credentialPublicKey=attestationObject.credentialPublicKey.export_key().decode('utf-8'),
-                           signCount=attestationObject.authData.signCount, regTime=now)
+                           signCount=attestationObject.authData.signCount,
+                           transports=json.dumps(response['transports']), regTime=now)
 
         return HttpResponse(Response.success(session.username))
 
