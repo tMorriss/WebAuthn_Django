@@ -153,9 +153,13 @@
             }).then((credential) => {
                 // resultリクエスト
                 return assertion_result(credential);
-            }).then((response) => {
-                $('#resultMsg').text(response);
-            });
+            }).catch(e => {
+                $('#resultMsg').text(e);
+                return;
+            })
+                .then((response) => {
+                    $('#resultMsg').text(response);
+                });
         }
     </script>
 </head>
