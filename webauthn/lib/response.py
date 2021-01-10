@@ -28,3 +28,7 @@ class Response:
     @staticmethod
     def unsupportedError(msg):
         return Response.json("4003", "Unsupported Error (" + msg + ")")
+
+    @staticmethod
+    def internalServerError(msg):
+        return Response.json("5001", "Internal Server Error (" + msg + ")")
