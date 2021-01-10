@@ -153,8 +153,7 @@ def attestation_result(request):
                            signCount=attestationObject.authData.signCount,
                            transports=json.dumps(response['transports']), regTime=now)
 
-        return HttpResponse(Response.success(session.username))
-
+        return HttpResponse(Response.success({'username': session.username}))
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
     except InvalidValueException as e:
