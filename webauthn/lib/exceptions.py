@@ -8,3 +8,7 @@ class InvalidValueException(Exception):
 
 class UnsupportedException(Exception):
     pass
+
+
+class InternalServerErrorException(Exception):
+    pass
