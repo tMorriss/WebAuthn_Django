@@ -89,10 +89,12 @@
         }
 
         function deleteKey(pk) {
-            return $.post({
+            $.post({
                 url: "{% url 'delete' %}",
                 data: JSON.stringify({ pk: pk }),
                 contentType: 'application/json'
+            }).done(() => {
+                $("#key-" + pk).remove();
             });
         }
 
@@ -183,7 +185,7 @@
 
                 tblText = "<table><tr><th>登録日</th><th>credentialId</th></tr>";
                 for (let i = 0; i < responseJson.keys.length; i++) {
-                    tblText += "<tr><td>" + responseJson.keys[i].regTime + "</td><td>" + responseJson.keys[i].credentialId + "</td>";
+                    tblText += "<tr id='key-" + responseJson.keys[i].pk + "'><td>" + responseJson.keys[i].regTime + "</td><td>" + responseJson.keys[i].credentialId + "</td>";
                     tblText += "<td><button onclick='deleteKey(" + responseJson.keys[i].pk + ")'>削除</button></td>";
                 }
                 tblText += "</table>";
