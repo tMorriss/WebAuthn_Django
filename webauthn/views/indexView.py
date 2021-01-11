@@ -1,3 +1,5 @@
+from config.settings.common import TIME_ZONE
+from dateutil.tz import gettz
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -31,7 +33,7 @@ def key_list(request):
             response.append({
                 'pk': k.pk,
                 'credentialId': k.credentialId,
-                'regTime': k.regTime.strftime('%Y-%m-%d %H:%M:%S')
+                'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
             })
 
         return HttpResponse(Response.success({'keys': response}))
