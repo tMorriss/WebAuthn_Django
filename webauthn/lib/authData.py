@@ -14,7 +14,7 @@ class AuthData:
         self.uv = (4 & int.from_bytes(flags, byteorder='big')) == 4
         self.signCount = int.from_bytes(
             self.authData[33:37], byteorder='big')
-        self.aaguid = self.authData[37:53]
+        self.aaguid = self.authData[37:53].hex()
 
         credentialIdLength = int.from_bytes(
             self.authData[53:55], byteorder='big')
