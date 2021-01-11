@@ -6,6 +6,7 @@ class Key(models.Model):
     username = models.CharField(max_length=Values.USERNAME_MAX_LENGTH)
     userid = models.CharField(max_length=64)
     credentialId = models.CharField(max_length=300)
+    aaguid = models.CharField(max_length=32, default="")
     alg = models.IntegerField(default=0)
     credentialPublicKey = models.CharField(max_length=500)
     signCount = models.IntegerField(default=None)

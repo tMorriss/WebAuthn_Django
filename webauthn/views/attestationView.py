@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from webauthn.lib.attestationObject import AttestationObject
 from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
+from webauthn.lib.exceptions import InternalServerErrorException
 from webauthn.lib.utils import generateId, stringToBase64Url
 from webauthn.lib.values import Values
 from webauthn.models import Key, Session
@@ -38,7 +39,7 @@ def attestation_options(request):
         "statusCode": Values.SUCCESS_CODE,
         "rp": {
             "id": Values.RP_ID,
-            "name": "tmorriss.com"
+            "name": Values.RP_ID
         },
         "user": {
             "id": userid,
@@ -148,9 +149,9 @@ def attestation_result(request):
 
         # 保存
         Key.objects.create(username=session.username, userid=session.userid,
-                           credentialId=attestationObject.authData.credentialId, alg=attestationObject.alg,
-                           credentialPublicKey=attestationObject.credentialPublicKey.export_key().decode('utf-8'),
-                           signCount=attestationObject.authData.signCount,
+                           credentialId=attestationObject.authData.credentialId, aaguid=attestationObject.authData.aaguid, alg=attestationObject.alg,
+                           credentialPublicKey=attestationObject.credentialPublicKey.export_key(
+                               format='PEM'), signCount=attestationObject.authData.signCount,
                            transports=json.dumps(response['transports']), regTime=now)
 
         return HttpResponse(Response.success({'username': session.username}))
@@ -160,3 +161,5 @@ def attestation_result(request):
         return HttpResponse(Response.invalidValueError(str(e)))
     except UnsupportedException as e:
         return HttpResponse(Response.unsupportedError(str(e)))
+    except InternalServerErrorException as e:
+        return HttpResponse(Response.internalServerError(str(e)))
