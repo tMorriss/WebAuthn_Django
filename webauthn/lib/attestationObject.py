@@ -158,9 +158,7 @@ class AttestationObject:
         self.authData = AuthData(cbor['authData'])
 
         self.metadata = MetaDataService()
-        self.metadata.get_toc()
-        self.metadata.get_entry(self.authData.aaguid)
-        self.metadata.get_metadata()
+        self.metadata.get(self.authData.aaguid)
 
     def __extractPubKey(self):
         pkey = cbor2.loads(self.authData.rawPkey)
