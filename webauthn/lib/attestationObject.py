@@ -116,7 +116,8 @@ class AndroidSafetyNet(AttestationStatement):
         if 'timestampMs' not in self.jwt.payload.keys() or \
             (now - dt.fromtimestamp(int(self.jwt.payload['timestampMs']) / 1000)).total_seconds() > \
                 Values.CREDENTIAL_VERIFY_TIMEOUT_SECONDS:
-            raise InvalidValueException("attStmt.response.timestampMs")
+            raise InvalidValueException(
+                "attStmt.response.timestampMs (" + str(int(self.jwt.payload['timestampMs']) / 1000) + ")")
 
         # nonce
         nonceBuffer = hashlib.sha256(dataToVerify).digest()
