@@ -14,4 +14,4 @@ class JWT:
 
         self.base64_header = jwt[0]
         self.base64_payload = jwt[1]
-        self.signature = jwt[2]
+        self.signature = base64UrlDecode(jwt[2])

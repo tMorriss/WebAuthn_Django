@@ -1,5 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from cryptography import x509
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
+from cryptography.hazmat.primitives.hashes import SHA256
 from Crypto.PublicKey import RSA, ECC
 from datetime import datetime as dt
 from webauthn.lib.authData import AuthData
@@ -95,6 +98,20 @@ class AndroidSafetyNet(AttestationStatement):
             raise InvalidValueException("attStmt.sig.chain.expire")
 
         # JWSの署名検証
+        data = self.jwt.base64_header + '.' + self.jwt.base64_payload
+        padding = None
+        alg = None
+        if self.jwt.header['alg'] == 'RS256':
+            padding = PKCS1v15()
+            alg = SHA256()
+
+        try:
+            cert.public_key().verify(self.jwt.signature, data.encode(),
+                                     padding, alg)
+        except InvalidSignature:
+            raise InvalidValueException(
+                "attStmt.response jwt signature")
+
         # timestampMs
         if 'timestampMs' not in self.jwt.payload.keys() or \
             (now - dt.fromtimestamp(int(self.jwt.payload['timestampMs']) / 1000)).total_seconds() > \
