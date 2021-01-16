@@ -3,10 +3,10 @@ from dateutil.tz import gettz
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from webauthn.lib.exceptions import FormatException
+from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.response import Response
 from webauthn.lib.values import Values
-from webauthn.models import Key
+from webauthn.models import User, Key
 import json
 
 
@@ -25,8 +25,11 @@ def key_list(request):
             raise FormatException(Values.USERNAME)
         username = request.GET.get(Values.USERNAME)
 
+        users = User.objects.filter(name=username)
+        if users.count() <= 0:
+            raise InvalidValueException('invalid username')
         keys = Key.objects.filter(
-            username=username).order_by('regTime').reverse()
+            user=users.first()).order_by('regTime').reverse()
 
         response = []
         for k in keys:
@@ -40,6 +43,8 @@ def key_list(request):
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
+    except InvalidValueException as e:
+        return HttpResponse(Response.invalidValueError(str(e)))
 
 
 @csrf_exempt

@@ -5,7 +5,7 @@ from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.utils import generateId, stringToBase64Url, base64UrlDecode
 from webauthn.lib.values import Values
-from webauthn.models import Key, Session
+from webauthn.models import User, Key, Session
 from webauthn.lib.response import Response
 from webauthn.lib.authData import AuthData
 from webauthn.lib.publicKey import PublicKey
@@ -32,12 +32,20 @@ def assertion_options(request):
     }
 
     username = ""
+    user = None
 
     # 名前が渡ってきたときはallowCredentialsを入れる
     # 指定されていないときはresidentKey
     if "username" in post_data:
         username = post_data['username']
-        credentials = Key.objects.filter(username=username)
+
+        # ユーザの存在確認
+        users = User.objects.filter(name=username)
+        if users.count() <= 0:
+            raise InvalidValueException('username')
+
+        user = users.first()
+        credentials = Key.objects.filter(user=users.first())
         for c in credentials:
             options['allowCredentials'].append({
                 "type": "public-key",
@@ -48,7 +56,7 @@ def assertion_options(request):
     # challengeの保存
     now = timezone.now()
     Session.objects.create(challenge=stringToBase64Url(challenge),
-                           username=username, time=now, function="assertion")
+                           user=user, time=now, function="assertion")
 
     return HttpResponse(json.dumps(options))
 
@@ -66,6 +74,9 @@ def assertion_result(request):
         if 'response' not in post_data:
             raise FormatException("response")
         response = post_data['response']
+        # credentialId読み込み
+        if 'id' not in post_data:
+            raise FormatException("id")
 
         # validate
         if 'authenticatorData' not in response:
@@ -74,26 +85,6 @@ def assertion_result(request):
             raise FormatException("response.clientDataJSON")
         if 'signature' not in response:
             raise FormatException("response.signature")
-        if 'userHandle' not in response:
-            raise FormatException("response.userHandle")
-
-        # username確認
-        userid = response['userHandle']
-        credentials = Key.objects.filter(userid=userid)
-        if credentials.count() < 1:
-            raise InvalidValueException('response.userHandle')
-
-        # credentialIdの確認
-        if 'id' not in post_data:
-            raise FormatException("id")
-        isExist = False
-        username = ""
-        for c in credentials:
-            if c.credentialId == post_data['id']:
-                isExist = True
-                username = c.username
-        if not isExist:
-            raise InvalidValueException("id")
 
         # clientDataの読み込み
         clientData = ClientData(response['clientDataJSON'])
@@ -103,18 +94,35 @@ def assertion_result(request):
         challenge = clientData.challenge
 
         # challengeの確認
-        session = Session.objects.filter(
+        sessions = Session.objects.filter(
             challenge=challenge, function="assertion")
-        if session.count() != 1:
+        if sessions.count() != 1:
             raise InvalidValueException("clientDataJson.challenge")
-        session = session.first()
+        session = sessions.first()
+
+        # userの取得
+        user = None
+        if 'userHandle' in response and len(response['userHandle']) > 0:
+            userid = response['userHandle']
+            users = User.objects.filter(uid=userid)
+            if users.count() < 1:
+                raise InvalidValueException('response.userHandle')
+            user = users.first()
+            if user != session.user:
+                raise InvalidValueException('response.userHandle')
+        else:
+            user = session.user
 
         # authenticatorDataの検証
         authData = AuthData(base64UrlDecode(response['authenticatorData']))
         authData.validate()
 
         # 公開鍵の検証
-        pubKey = Key.objects.filter(credentialId=post_data['id'])[0]
+        pubKeys = Key.objects.filter(
+            user=user, credentialId=post_data['id'])
+        if len(pubKeys) != 1:
+            raise InvalidValueException('public key is missing')
+        pubKey = pubKeys[0]
         dataToVerify = authData.authData + clientData.hash
         if not PublicKey.verify(
                 RSA.import_key(pubKey.credentialPublicKey),
@@ -131,7 +139,7 @@ def assertion_result(request):
         pubKey.signCount = authData.signCount
         pubKey.save()
 
-        return HttpResponse(Response.success({'username': username}))
+        return HttpResponse(Response.success({'username': pubKey.user.name}))
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))

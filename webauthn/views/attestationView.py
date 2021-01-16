@@ -8,7 +8,7 @@ from webauthn.lib.exceptions import FormatException, InvalidValueException, Unsu
 from webauthn.lib.exceptions import InternalServerErrorException
 from webauthn.lib.utils import generateId, stringToBase64Url
 from webauthn.lib.values import Values
-from webauthn.models import Key, Session
+from webauthn.models import User, Key, Session
 from webauthn.lib.response import Response
 import json
 import hashlib
@@ -34,6 +34,13 @@ def attestation_options(request):
     if len(username) < 1:
         return HttpResponse(Response.invalidValueError("empty username"))
 
+    # ユーザがいなかったら作成
+    users = User.objects.filter(name=username)
+    if users.count() <= 0:
+        user = User.objects.create(name=username, uid=userid)
+    else:
+        user = users.first()
+
     challenge = generateId(Values.CHALLENGE_LENGTH)
     options = {
         "statusCode": Values.SUCCESS_CODE,
@@ -42,9 +49,9 @@ def attestation_options(request):
             "name": Values.RP_ID
         },
         "user": {
-            "id": userid,
-            "name": username,
-            "displayName": username
+            "id": user.uid,
+            "name": user.name,
+            "displayName": user.name
         },
         "challenge": challenge,
         "pubKeyCredParams": [],
@@ -65,7 +72,7 @@ def attestation_options(request):
         })
 
     # excludeCredentials
-    excludeCredentials = Key.objects.filter(username=username)
+    excludeCredentials = Key.objects.filter(user=user)
     for c in excludeCredentials:
         options["excludeCredentials"].append({
             "type": "public-key",
@@ -76,7 +83,7 @@ def attestation_options(request):
     # challengeの保存
     now = timezone.now()
     Session.objects.create(challenge=stringToBase64Url(challenge),
-                           username=username, userid=userid, time=now, function="attestation")
+                           user=user, time=now, function="attestation")
 
     # 古いセッションを削除
     for s in Session.objects.all():
@@ -148,13 +155,19 @@ def attestation_result(request):
         session.delete()
 
         # 保存
-        Key.objects.create(username=session.username, userid=session.userid,
-                           credentialId=attestationObject.authData.credentialId, aaguid=attestationObject.authData.aaguid, alg=attestationObject.alg,
-                           credentialPublicKey=attestationObject.credentialPublicKey.export_key(
-                               format='PEM'), signCount=attestationObject.authData.signCount,
-                           transports=json.dumps(response['transports']), regTime=now)
+        Key.objects.create(
+            user=session.user,
+            credentialId=attestationObject.authData.credentialId,
+            aaguid=attestationObject.authData.aaguid,
+            alg=attestationObject.alg,
+            credentialPublicKey=attestationObject.credentialPublicKey.export_key(
+                format='PEM'),
+            signCount=attestationObject.authData.signCount,
+            transports=json.dumps(response['transports']),
+            regTime=now
+        )
 
-        return HttpResponse(Response.success({'username': session.username}))
+        return HttpResponse(Response.success({'username': session.user.name}))
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
     except InvalidValueException as e:

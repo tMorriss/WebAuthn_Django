@@ -2,9 +2,13 @@ from django.db import models
 from webauthn.lib.values import Values
 
 
+class User(models.Model):
+    name = models.CharField(max_length=Values.USERNAME_MAX_LENGTH, unique=True)
+    uid = models.CharField(max_length=64)
+
+
 class Key(models.Model):
-    username = models.CharField(max_length=Values.USERNAME_MAX_LENGTH)
-    userid = models.CharField(max_length=64)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     credentialId = models.CharField(max_length=300)
     aaguid = models.CharField(max_length=32, default="")
     alg = models.IntegerField(default=0)
@@ -16,7 +20,6 @@ class Key(models.Model):
 
 class Session(models.Model):
     challenge = models.CharField(max_length=Values.CHALLENGE_LENGTH)
-    username = models.CharField(max_length=Values.USERNAME_MAX_LENGTH)
-    userid = models.CharField(max_length=64)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
     time = models.DateTimeField()
     function = models.CharField(max_length=11)
