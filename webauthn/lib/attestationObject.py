@@ -12,6 +12,7 @@ from webauthn.lib.values import Values
 from webauthn.lib.metadata import MetaDataService
 import base64
 import cbor2
+import hashlib
 
 
 class AttestationStatement(metaclass=ABCMeta):
@@ -101,7 +102,9 @@ class AndroidSafetyNet(AttestationStatement):
             raise InvalidValueException("attStmt.response.timestampMs")
 
         # nonce
-        if 'nonce' not in self.jwt.payload.keys() or len(self.jwt.payload['nonce']) <= 0:
+        nonceBuffer = hashlib.sha256(dataToVerify).digest()
+        expectedNonce = base64.b64encode(nonceBuffer).decode()
+        if 'nonce' not in self.jwt.payload.keys() or self.jwt.payload['nonce'] != expectedNonce:
             raise InvalidValueException("attStmt.response.nonce")
 
         # ctsProfileMatch
