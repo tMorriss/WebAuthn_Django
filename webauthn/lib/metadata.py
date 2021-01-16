@@ -1,6 +1,8 @@
 from webauthn.lib.exceptions import InvalidValueException, InternalServerErrorException
 from webauthn.lib.jwt import JWT
+from webauthn.lib.utils import bytesToBase64Url
 import base64
+import hashlib
 import json
 import os
 import requests
@@ -32,6 +34,7 @@ class MetaDataService:
 
             if e['aaguid'].replace('-', '') == aaguid:
                 self.entry = e
+                break
 
     def get_metadata(self):
         r = requests.get(
@@ -42,7 +45,14 @@ class MetaDataService:
         if r.status_code != 200:
             raise InternalServerErrorException("get metadata")
 
-        self.metadata = json.loads(base64.b64decode(r.text))
+        base64Text = r.text
+        self.metadata = json.loads(base64.b64decode(base64Text))
+
+        # hash確認
+        digest = hashlib.sha256(base64Text.encode()).digest()
+        base64UrlDigest = bytesToBase64Url(digest)
+        if self.entry['hash'] != base64UrlDigest:
+            raise InternalServerErrorException('metadata.entry.hash')
 
     def get_root_certificates(self):
         return self.metadata['attestationRootCertificates']
