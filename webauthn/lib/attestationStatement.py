@@ -28,9 +28,9 @@ class Packed(AttestationStatement):
     def __init__(self, attStmt):
         # validate
         if 'alg' not in attStmt:
-            raise FormatException('alg')
+            raise FormatException('attStmt.alg')
         if 'sig' not in attStmt:
-            raise FormatException('sig')
+            raise FormatException('attStmt.sig')
 
         self.attStmt = attStmt
         self.alg = attStmt['alg']
@@ -51,6 +51,12 @@ class Packed(AttestationStatement):
 
 class AndroidSafetyNet(AttestationStatement):
     def __init__(self, attStmt):
+        # validate
+        if 'ver' not in attStmt:
+            raise FormatException('attStmt.ver')
+        if 'response' not in attStmt:
+            raise FormatException('attStmt.response')
+
         response = attStmt['response'].decode()
 
         try:
@@ -113,7 +119,7 @@ class AndroidSafetyNet(AttestationStatement):
             (now - dt.fromtimestamp(int(self.jwt.payload['timestampMs']) / 1000)).total_seconds() > \
                 Values.CREDENTIAL_VERIFY_TIMEOUT_SECONDS:
             raise InvalidValueException(
-                "attStmt.response.timestampMs (" + str(int(self.jwt.payload['timestampMs']) / 1000) + ")")
+                "attStmt.response.timestampMs (" + self.jwt.payload['timestampMs'] + ")")
 
         # nonce
         nonceBuffer = hashlib.sha256(dataToVerify).digest()
