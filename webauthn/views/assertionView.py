@@ -105,10 +105,10 @@ def assertion_result(request):
             userid = response['userHandle']
             users = User.objects.filter(uid=userid)
             if users.count() < 1:
-                raise InvalidValueException('response.userHandle')
+                raise InvalidValueException('response.userHandle is not exist')
             user = users.first()
-            if user != session.user:
-                raise InvalidValueException('response.userHandle')
+            if session.user is not None and user.uid != session.user.uid:
+                raise InvalidValueException('response.userHandle is not match')
         else:
             user = session.user
 

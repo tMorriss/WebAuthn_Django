@@ -20,6 +20,6 @@ class Key(models.Model):
 
 class Session(models.Model):
     challenge = models.CharField(max_length=Values.CHALLENGE_LENGTH)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     time = models.DateTimeField()
     function = models.CharField(max_length=11)
