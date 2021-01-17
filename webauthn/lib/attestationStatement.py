@@ -67,37 +67,14 @@ class AndroidSafetyNet(AttestationStatement):
     def validate(self, dataToVerify, pubKey):
         now = dt.now()
 
-        # 証明書チェーン検証
+        # 証明書読み込み
         cert = x509.load_der_x509_certificate(
             base64UrlDecode(self.jwt.header["x5c"][0]))
         chain = x509.load_der_x509_certificate(
             base64UrlDecode(self.jwt.header["x5c"][1]))
 
-        # 末端-中間
-        if not Certificate.verify(chain.public_key(), cert):
-            raise InvalidValueException("attStmt.sig.cert")
-        # 中間-Root
-        isValud = False
-        for c in self.rootCertificates:
-            if Certificate.verify(c.public_key(), chain):
-                isValud = True
-                # expire
-                if c.not_valid_before > now:
-                    raise InvalidValueException("root cert expire")
-                if c.not_valid_after < now:
-                    raise InvalidValueException("root cert expire")
-        if not isValud:
-            raise InvalidValueException("attStmt.sig.chain")
-
-        # 証明書のexpire
-        if cert.not_valid_before > now:
-            raise InvalidValueException("attStmt.sig.cert.expire")
-        if cert.not_valid_after < now:
-            raise InvalidValueException("attStmt.sig.cert.expire")
-        if chain.not_valid_before > now:
-            raise InvalidValueException("attStmt.sig.chain.expire")
-        if chain.not_valid_after < now:
-            raise InvalidValueException("attStmt.sig.chain.expire")
+        # 証明書検証
+        Certificate.verify_chain(cert, chain, self.rootCertificates, now)
 
         # JWSの署名検証
         data = self.jwt.base64_header + '.' + self.jwt.base64_payload
