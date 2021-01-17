@@ -9,7 +9,6 @@ from webauthn.models import User, Key, Session
 from webauthn.lib.response import Response
 from webauthn.lib.authData import AuthData
 from webauthn.lib.publicKey import PublicKey
-from Crypto.PublicKey import RSA
 import json
 
 
@@ -125,7 +124,7 @@ def assertion_result(request):
         pubKey = pubKeys[0]
         dataToVerify = authData.authData + clientData.hash
         if not PublicKey.verify(
-                RSA.import_key(pubKey.credentialPublicKey),
+                pubKey.credentialPublicKey,
                 dataToVerify,
                 base64UrlDecode(response['signature']),
                 pubKey.alg):

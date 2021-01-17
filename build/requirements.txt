@@ -1,6 +1,7 @@
 cbor2 <= 5.999.999
 cryptography <= 3.999.999
 django <= 3.999.999
+ecdsa <= 0.999.999
 pycryptodome <= 3.999.999
 python-dateutil <= 2.999.999
 requests <= 2.999.999

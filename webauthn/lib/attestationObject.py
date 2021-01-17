@@ -158,9 +158,6 @@ class AttestationObject:
         self.attStmt = cbor['attStmt']
         self.authData = AuthData(cbor['authData'])
 
-        self.metadata = MetaDataService()
-        self.metadata.get(self.authData.aaguid)
-
     def __extractPubKey(self):
         pkey = cbor2.loads(self.authData.rawPkey)
         if pkey.keys() <= {1, 3}:
@@ -173,7 +170,7 @@ class AttestationObject:
 
             n = int.from_bytes(pkey[-1], byteorder='big')
             e = int.from_bytes(pkey[-2], byteorder='big')
-            return RSA.construct((n, e))
+            return RSA.construct((n, e)).export_key(format='PEM').decode()
 
         if pkey[1] == Values.KTY_LIST['EC2'] and pkey[3] == Values.ALG_LIST['ES256']:
             self.alg = pkey[3]
@@ -183,7 +180,7 @@ class AttestationObject:
             curve = Values.EC_KEYS[pkey[-1]]
             x = int.from_bytes(pkey[-2], byteorder='big')
             y = int.from_bytes(pkey[-3], byteorder='big')
-            return ECC.construct(curve=curve, point_x=x, point_y=y)
+            return ECC.construct(curve=curve, point_x=x, point_y=y).export_key(format='PEM')
 
         raise UnsupportedException("pubKey alg")
 
@@ -194,8 +191,11 @@ class AttestationObject:
         if self.fmt == Values.FMT_LIST['packed']:
             attStmt = Packed(self.attStmt)
         elif self.fmt == Values.FMT_LIST['android-safetynet']:
+            metadata = MetaDataService()
+            metadata.get(self.authData.aaguid)
+
             attStmt = AndroidSafetyNet(self.attStmt)
-            attStmt.add_root_certificate(self.metadata)
+            attStmt.add_root_certificate(metadata)
         else:
             raise UnsupportedException("attestationObject.fmt=" + self.fmt)
 
