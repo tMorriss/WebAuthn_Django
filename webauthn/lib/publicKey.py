@@ -1,11 +1,12 @@
+import hashlib
+
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from ecdsa import VerifyingKey
 from ecdsa.util import sigdecode_der
-from webauthn.lib.values import Values
 from webauthn.lib.exceptions import UnsupportedException
-import hashlib
+from webauthn.lib.values import Values
 
 
 class PublicKey:

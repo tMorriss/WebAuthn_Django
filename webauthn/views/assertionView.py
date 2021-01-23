@@ -1,15 +1,16 @@
+import json
+
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from webauthn.lib.authData import AuthData
 from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException
-from webauthn.lib.utils import generateId, stringToBase64Url, base64UrlDecode
-from webauthn.lib.values import Values
-from webauthn.models import User, Key, Session
-from webauthn.lib.response import Response
-from webauthn.lib.authData import AuthData
 from webauthn.lib.publicKey import PublicKey
-import json
+from webauthn.lib.response import Response
+from webauthn.lib.utils import base64UrlDecode, generateId, stringToBase64Url
+from webauthn.lib.values import Values
+from webauthn.models import Key, Session, User
 
 
 @csrf_exempt

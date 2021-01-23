@@ -1,12 +1,15 @@
-from webauthn.lib.exceptions import InvalidValueException, UnsupportedException, InternalServerErrorException
-from webauthn.lib.jwt import JWT
-from webauthn.lib.utils import bytesToBase64Url
 import base64
 import datetime
 import hashlib
 import json
 import os
+
 import requests
+from webauthn.lib.exceptions import (InternalServerErrorException,
+                                     InvalidValueException,
+                                     UnsupportedException)
+from webauthn.lib.jwt import JWT
+from webauthn.lib.utils import bytesToBase64Url
 
 
 class MetaDataService:

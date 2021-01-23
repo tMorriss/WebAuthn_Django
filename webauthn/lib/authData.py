@@ -1,7 +1,8 @@
-from webauthn.lib.utils import bytesToBase64Url
 import hashlib
-from webauthn.lib.values import Values
+
 from webauthn.lib.exceptions import InvalidValueException
+from webauthn.lib.utils import bytesToBase64Url
+from webauthn.lib.values import Values
 
 
 class AuthData:

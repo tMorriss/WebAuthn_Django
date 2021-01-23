@@ -1,15 +1,18 @@
+import base64
+import hashlib
 from abc import ABCMeta, abstractmethod
 from datetime import datetime as dt
+
+import requests
 from webauthn.lib.certificate import Certificate
-from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
-from webauthn.lib.exceptions import InternalServerErrorException
+from webauthn.lib.exceptions import (FormatException,
+                                     InternalServerErrorException,
+                                     InvalidValueException,
+                                     UnsupportedException)
 from webauthn.lib.jwt import JWT
 from webauthn.lib.publicKey import PublicKey
 from webauthn.lib.utils import base64UrlDecode
 from webauthn.lib.values import Values
-import base64
-import hashlib
-import requests
 
 
 class AttestationStatement(metaclass=ABCMeta):

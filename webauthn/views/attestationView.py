@@ -1,17 +1,20 @@
+import hashlib
+import json
 from datetime import timedelta
+
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from webauthn.lib.attestationObject import AttestationObject
 from webauthn.lib.clientData import ClientData
-from webauthn.lib.exceptions import FormatException, InvalidValueException, UnsupportedException
-from webauthn.lib.exceptions import InternalServerErrorException
+from webauthn.lib.exceptions import (FormatException,
+                                     InternalServerErrorException,
+                                     InvalidValueException,
+                                     UnsupportedException)
+from webauthn.lib.response import Response
 from webauthn.lib.utils import generateId, stringToBase64Url
 from webauthn.lib.values import Values
-from webauthn.models import User, Key, Session
-from webauthn.lib.response import Response
-import json
-import hashlib
+from webauthn.models import Key, Session, User
 
 
 @csrf_exempt

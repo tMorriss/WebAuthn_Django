@@ -1,7 +1,8 @@
 from django.urls import path
-from webauthn.views.indexView import index, key_list, delete
-from webauthn.views.attestationView import attestation_options, attestation_result
 from webauthn.views.assertionView import assertion_options, assertion_result
+from webauthn.views.attestationView import (attestation_options,
+                                            attestation_result)
+from webauthn.views.indexView import delete, index, key_list
 
 urlpatterns = [
     path('', index, name='index'),

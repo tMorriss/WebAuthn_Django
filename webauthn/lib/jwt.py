@@ -1,6 +1,7 @@
+import json
+
 from webauthn.lib.exceptions import InvalidValueException
 from webauthn.lib.utils import base64UrlDecode
-import json
 
 
 class JWT:

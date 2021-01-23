@@ -1,12 +1,13 @@
+import base64
+
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ec import ECDSA
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.hashes import SHA256, SHA384
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-from cryptography.x509 import ObjectIdentifier, ExtensionNotFound
+from cryptography.x509 import ExtensionNotFound, ObjectIdentifier
 from webauthn.lib.exceptions import InvalidValueException, UnsupportedException
-import base64
 
 
 class Certificate:

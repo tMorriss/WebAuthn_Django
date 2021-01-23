@@ -1,3 +1,5 @@
+import json
+
 from config.settings.common import TIME_ZONE
 from dateutil.tz import gettz
 from django.http import HttpResponse
@@ -6,8 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.response import Response
 from webauthn.lib.values import Values
-from webauthn.models import User, Key
-import json
+from webauthn.models import Key, User
 
 
 def index(request):

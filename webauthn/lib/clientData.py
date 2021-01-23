@@ -1,8 +1,9 @@
 import hashlib
 import json
-from webauthn.lib.values import Values
+
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.utils import base64UrlDecode
+from webauthn.lib.values import Values
 
 
 class ClientData:

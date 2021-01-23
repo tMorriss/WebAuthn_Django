@@ -1,11 +1,11 @@
-from Crypto.PublicKey import RSA, ECC
-from webauthn.lib.attestationStatement import Packed, AndroidSafetyNet, Apple
+import cbor2
+from Crypto.PublicKey import ECC, RSA
+from webauthn.lib.attestationStatement import AndroidSafetyNet, Apple, Packed
 from webauthn.lib.authData import AuthData
-from webauthn.lib.exceptions import FormatException,  UnsupportedException
+from webauthn.lib.exceptions import FormatException, UnsupportedException
+from webauthn.lib.metadata import MetaDataService
 from webauthn.lib.utils import base64UrlDecode
 from webauthn.lib.values import Values
-from webauthn.lib.metadata import MetaDataService
-import cbor2
 
 
 class AttestationObject:
