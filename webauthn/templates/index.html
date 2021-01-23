@@ -8,14 +8,6 @@
     <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
     <script src="{% static 'jquery-3.5.1.min.js' %}"></script>
     <script>
-        function base64UrlEncode(data) {
-            return btoa(data).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-        }
-
-        function base64UrlDecode(encoded) {
-            return atob(encoded.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(4 - encoded.length % 4));
-        }
-
         function base64UrlToBuffer(base64) {
             let binary = atob(base64.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(4 - base64.length % 4));
             let len = binary.length;
@@ -47,7 +39,7 @@
                 id: rawCredential.id,
                 response: {
                     attestationObject: bufferToBase64Url(rawCredential.response.attestationObject),
-                    clientDataJSON: base64UrlEncode(bufferToString(rawCredential.response.clientDataJSON)),
+                    clientDataJSON: bufferToBase64Url(rawCredential.response.clientDataJSON),
                 },
                 type: rawCredential.type
             }
