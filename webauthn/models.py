@@ -12,6 +12,7 @@ class Key(models.Model):
     credentialId = models.CharField(max_length=300)
     aaguid = models.CharField(max_length=32, default="")
     alg = models.IntegerField(default=0)
+    fmt = models.CharField(max_length=30, default="")
     credentialPublicKey = models.CharField(max_length=500)
     signCount = models.IntegerField(default=None)
     transports = models.CharField(max_length=100, default="")

@@ -160,6 +160,7 @@ def attestation_result(request):
             credentialId=attestationObject.authData.credentialId,
             aaguid=attestationObject.authData.aaguid,
             alg=attestationObject.alg,
+            fmt=attestationObject.fmt,
             credentialPublicKey=attestationObject.credentialPublicKey,
             signCount=attestationObject.authData.signCount,
             transports=json.dumps(response['transports']),

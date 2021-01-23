@@ -35,6 +35,7 @@ def key_list(request):
         for k in keys:
             response.append({
                 'pk': k.pk,
+                'fmt': k.fmt,
                 'credentialId': k.credentialId,
                 'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
             })

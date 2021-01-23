@@ -131,7 +131,7 @@ def assertion_result(request):
             raise InvalidValueException('response.signature')
 
         # signCountの検証
-        if pubKey.signCount >= authData.signCount:
+        if pubKey.fmt not in Values.SIGN_COUNT_IGNORE_LIST and pubKey.signCount >= authData.signCount:
             raise InvalidValueException('signCount')
 
         # signCountの更新
