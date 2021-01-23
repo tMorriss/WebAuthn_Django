@@ -45,6 +45,9 @@
             }
             try {
                 credential.response.transports = rawCredential.response.getTransports();
+                if (credential.response.transports.length == 0) {
+                    credential.response.transports = ['internal'];
+                }
             } catch (TypeError) {
                 credential.response.transports = ['internal'];
             }
