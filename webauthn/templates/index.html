@@ -54,7 +54,7 @@
             try {
                 credential.response.transports = rawCredential.response.getTransports();
             } catch (TypeError) {
-                credential.response.transports = 'internal';
+                credential.response.transports = ['internal'];
             }
             return $.post({
                 url: "/attestation/result",
