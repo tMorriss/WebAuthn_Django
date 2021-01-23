@@ -48,9 +48,13 @@
                 response: {
                     attestationObject: bufferToBase64Url(rawCredential.response.attestationObject),
                     clientDataJSON: base64UrlEncode(bufferToString(rawCredential.response.clientDataJSON)),
-                    transports: rawCredential.response.getTransports()
                 },
                 type: rawCredential.type
+            }
+            try {
+                credential.response.transports = rawCredential.response.getTransports();
+            } catch (TypeError) {
+                credential.response.transports = 'internal';
             }
             return $.post({
                 url: "/attestation/result",
@@ -99,22 +103,29 @@
         }
 
         async function registerWithUVPAA() {
-            $('#resultMsg').text("")
+            $('#resultMsg').text("");
             // FIDO対応か確認
             PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
             ).then((result) => {
                 if (result) {
-                    var options = {
-                        "username": $("#register_username").val(),
-                    }
-                    // optionsリクエスト
-                    return attestation_options(options);
+                    register();
+                } else {
+                    $('#resultMsg').text("isUVPAA is false");
                 }
-            }).then((response) => {
+            });
+        }
+
+        function register() {
+            $('#resultMsg').text("");
+            var options = {
+                "username": $("#register_username").val(),
+            }
+            // optionsリクエスト
+            attestation_options(options).then((response) => {
                 // レスポンスをデコード
                 options = JSON.parse(response);
                 if (options.statusCode != "2000") {
-                    $('#resultMsg').text(response)
+                    $('#resultMsg').text(response);
                     return
                 }
                 options.user.id = new TextEncoder().encode(options.user.id);
@@ -131,6 +142,8 @@
                 if (e.name == "InvalidStateError" && e.message == "The user attempted to register an authenticator that contains one of the credentials already registered with the relying party.") {
                     $('#resultMsg').text("二重登録エラー");
                     return;
+                } else {
+                    $('#resultMsg').text(e);
                 }
             }).then((response) => {
                 $('#resultMsg').text(response);
@@ -143,14 +156,21 @@
             PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
             ).then((result) => {
                 if (result) {
-                    var options = {}
-                    if ($("#register_username").val() != "") {
-                        options["username"] = $("#register_username").val()
-                    }
-                    // optionsリクエスト
-                    return assertion_options(options);
+                    auth();
+                } else {
+                    $('#resultMsg').text("isUVPAA is false");
                 }
-            }).then((response) => {
+            });
+        }
+
+        function auth() {
+            $('#resultMsg').text("");
+            var options = {}
+            if ($("#register_username").val() != "") {
+                options["username"] = $("#register_username").val()
+            }
+            // optionsリクエスト
+            assertion_options(options).then((response) => {
                 // レスポンスをデコード
                 options = JSON.parse(response);
                 if (options.statusCode != "2000") {
@@ -198,8 +218,8 @@
 
 <body>
     <input type="username" id="register_username" value="tMorriss" /><br>
-    <button onclick="registerWithUVPAA()">登録</button><br>
-    <button onclick="authWithUVPAA()">認証</button><br>
+    <button onclick="registerWithUVPAA()">登録</button><button onclick="register()">登録(apple)</button><br>
+    <button onclick="authWithUVPAA()">認証</button><button onclick="auth()">認証(apple)</button><br>
     <div id="resultMsg"></div>
     <button onclick="showList()">鍵一覧</button>
     <div id="tblList"></div>

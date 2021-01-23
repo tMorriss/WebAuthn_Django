@@ -1,5 +1,5 @@
 from Crypto.PublicKey import RSA, ECC
-from webauthn.lib.attestationStatement import Packed, AndroidSafetyNet
+from webauthn.lib.attestationStatement import Packed, AndroidSafetyNet, Apple
 from webauthn.lib.authData import AuthData
 from webauthn.lib.exceptions import FormatException,  UnsupportedException
 from webauthn.lib.utils import base64UrlDecode
@@ -55,14 +55,16 @@ class AttestationObject:
 
         # fmtに対応したvalidatorを読み込み
         attStmt = None
-        if self.fmt == Values.FMT_LIST['packed']:
+        if self.fmt == 'packed':
             attStmt = Packed(self.attStmt)
-        elif self.fmt == Values.FMT_LIST['android-safetynet']:
+        elif self.fmt == 'android-safetynet':
             metadata = MetaDataService()
             metadata.get(self.authData.aaguid)
 
             attStmt = AndroidSafetyNet(self.attStmt)
             attStmt.add_root_certificate(metadata)
+        elif self.fmt == 'apple':
+            attStmt = Apple(self.attStmt)
         else:
             raise UnsupportedException("attestationObject.fmt=" + self.fmt)
 

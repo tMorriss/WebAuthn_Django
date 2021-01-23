@@ -3,9 +3,8 @@ import os
 
 class Values:
     RP_ID = os.environ.get('RP_ID', 'localhost')
-    ORIGIN = "https://" + os.environ.get('RP_ID', 'localhost')
+    ORIGIN = "https://" + os.environ.get('RP_ID', 'localhost:8000')
 
-    FMT_LIST = {'packed': "packed", 'android-safetynet': "android-safetynet"}
     ALG_LIST = {'RS256': -257, 'ES256': -7}
     KTY_LIST = {'EC2': 2, 'RSA': 3}
     EC_KEYS = {1: 'P-256', 2: 'P-384', 3: 'P-521',

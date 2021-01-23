@@ -1,6 +1,8 @@
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ec import ECDSA
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
-from webauthn.lib.exceptions import InvalidValueException
+from cryptography.hazmat.primitives.hashes import SHA256, SHA384
+from webauthn.lib.exceptions import InvalidValueException, UnsupportedException
 
 
 class Certificate:
@@ -29,13 +31,32 @@ class Certificate:
 
     @staticmethod
     def verify(key, cert):
-        padding = None
-        if cert.signature_algorithm_oid._name == 'sha256WithRSAEncryption':
-            padding = PKCS1v15()
         try:
-            key.verify(
-                cert.signature, cert.tbs_certificate_bytes, padding, cert.signature_hash_algorithm)
-            return True
+            if cert.signature_algorithm_oid._name == 'sha256WithRSAEncryption':
+                key.verify(
+                    cert.signature,
+                    cert.tbs_certificate_bytes,
+                    PKCS1v15(),
+                    cert.signature_hash_algorithm
+                )
+                return True
+            elif cert.signature_algorithm_oid._name == 'ecdsa-with-SHA256':
+                key.verify(
+                    cert.signature,
+                    cert.tbs_certificate_bytes,
+                    ECDSA(SHA256())
+                )
+                return True
+            elif cert.signature_algorithm_oid._name == 'ecdsa-with-SHA384':
+                key.verify(
+                    cert.signature,
+                    cert.tbs_certificate_bytes,
+                    ECDSA(SHA384())
+                )
+                return True
+            else:
+                raise UnsupportedException(
+                    'cert alg=' + cert.signature_algorithm_oid._name)
         except InvalidSignature:
             return False
         except TypeError:
