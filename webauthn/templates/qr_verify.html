@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebAuthn QR verifyテスト</title>
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <script>
+    </script>
+</head>
+
+<body>
+    <input type="username" id="register_username" value="tMorriss" /><br>
+    <input type="hidden" id="challenge" value="{{ challenge }}" />
+    <button onclick="">認証</button>
+</body>
+
+</html>

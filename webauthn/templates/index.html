@@ -7,7 +7,10 @@
     <title>WebAuthnテスト</title>
     <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
     <script src="{% static 'jquery-3.5.1.min.js' %}"></script>
+    <script src="{% static 'jquery.qrcode.min-1.0.js' %}"></script>
     <script>
+        successCode = '2000';
+
         function base64UrlToBuffer(base64) {
             let binary = atob(base64.replace(/-/g, '+').replace(/_/g, '/') + "=".repeat(4 - base64.length % 4));
             let len = binary.length;
@@ -15,7 +18,7 @@
             for (let i = 0; i < len; i++) {
                 bytes[i] = binary.charCodeAt(i);
             }
-            return bytes
+            return bytes;
         }
 
         function bufferToBase64Url(buffer) {
@@ -119,7 +122,7 @@
             attestation_options(options).then((response) => {
                 // レスポンスをデコード
                 options = JSON.parse(response);
-                if (options.statusCode != "2000") {
+                if (options.statusCode != successCode) {
                     $('#resultMsg').text(response);
                     return
                 }
@@ -168,7 +171,7 @@
             assertion_options(options).then((response) => {
                 // レスポンスをデコード
                 options = JSON.parse(response);
-                if (options.statusCode != "2000") {
+                if (options.statusCode != successCode) {
                     $('#resultMsg').text(response);
                     return;
                 }
@@ -191,10 +194,10 @@
         }
 
         function showList() {
-            username = $("#register_username").val()
+            username = $("#register_username").val();
             getList(username).done((response) => {
                 responseJson = JSON.parse(response);
-                if (responseJson.statusCode != '2000') {
+                if (responseJson.statusCode != successCode) {
                     return;
                 }
 
@@ -208,6 +211,31 @@
                 $("#tblList").append(tblText);
             });
         }
+
+        function generateQR() {
+            username = $("#register_username").val();
+            $.post({
+                url: "{% url 'qr_generate' %}",
+                data: JSON.stringify({ username: username }),
+                contentType: 'application/json'
+            }).done((response) => {
+                responseJson = JSON.parse(response);
+                if (responseJson.statusCode != successCode) {
+                    $('#resultMsg').text("failed: status=" + responseJson.statusMessage);
+                    return;
+                }
+                $('#qrcode').qrcode({
+                    width: 200,
+                    height: 200,
+                    correctLevel: 1,
+                    text: responseJson.url
+                });
+                $('#verify_link').text("");
+                $('#verify_link').append('<a href="' + responseJson.url + '">' + responseJson.url + '</a>');
+            }).fail((response) => {
+                console.log(response);
+            })
+        }
     </script>
 </head>
 
@@ -218,6 +246,9 @@
     <div id="resultMsg"></div>
     <button onclick="showList()">鍵一覧</button>
     <div id="tblList"></div>
+    <button onclick="generateQR()">QR生成</button>
+    <div id="qrcode"></div>
+    <div id="verify_link"></div>
 </body>
 
 </html>
