@@ -26,11 +26,12 @@ def key_list(request):
             raise FormatException(Values.USERNAME)
         username = request.GET.get(Values.USERNAME)
 
-        users = User.objects.filter(name=username)
-        if users.count() <= 0:
+        try:
+            user = User.objects.get(name=username)
+        except User.DoesNotExist:
             raise InvalidValueException('invalid username')
         keys = Key.objects.filter(
-            user=users.first()).order_by('regTime').reverse()
+            user=user).order_by('regTime').reverse()
 
         response = []
         for k in keys:

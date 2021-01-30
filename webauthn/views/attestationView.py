@@ -38,11 +38,10 @@ def attestation_options(request):
         return HttpResponse(Response.invalidValueError("empty username"))
 
     # ユーザがいなかったら作成
-    users = User.objects.filter(name=username)
-    if users.count() <= 0:
+    try:
+        user = User.objects.get(name=username)
+    except User.DoesNotExist:
         user = User.objects.create(name=username, uid=userid)
-    else:
-        user = users.first()
 
     challenge = generateId(Values.CHALLENGE_LENGTH)
     options = {
@@ -146,11 +145,11 @@ def attestation_result(request):
             raise InvalidValueException("already registered")
 
         # challengeの確認
-        session = Session.objects.filter(
-            challenge=challenge, function="attestation")
-        if session.count() != 1:
+        try:
+            session = Session.objects.get(
+                challenge=challenge, function="attestation")
+        except Session.DoesNotExist:
             raise InvalidValueException("clientDataJson.challenge")
-        session = session.first()
 
         # 時刻確認
         now = timezone.now()

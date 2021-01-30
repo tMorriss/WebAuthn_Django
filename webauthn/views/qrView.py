@@ -27,10 +27,10 @@ def generate(request):
         username = post_data[Values.USERNAME]
 
         # ユーザ取得
-        users = User.objects.filter(name=username)
-        if users.count() <= 0:
+        try:
+            user = User.objects.get(name=username)
+        except User.DoesNotExist:
             raise InvalidValueException('username')
-        user = users.first()
 
         # QR用Session生成
         now = timezone.now()
