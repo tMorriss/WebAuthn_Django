@@ -3,7 +3,7 @@ from webauthn.views.assertionView import assertion_options, assertion_result
 from webauthn.views.attestationView import (attestation_options,
                                             attestation_result)
 from webauthn.views.indexView import delete, index, key_list
-from webauthn.views.qrView import generate, verify
+from webauthn.views.qrView import generate, verify, check
 
 urlpatterns = [
     path('', index, name='index'),
@@ -14,5 +14,6 @@ urlpatterns = [
     path('list', key_list, name='list'),
     path('delete', delete, name='delete'),
     path('qr/generate', generate, name='qr_generate'),
-    path('qr/verify', verify, name='qr_verify')
+    path('qr/verify', verify, name='qr_verify'),
+    path('qr/check', check, name='qr_check')
 ]

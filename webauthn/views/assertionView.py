@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -10,7 +11,7 @@ from webauthn.lib.publicKey import PublicKey
 from webauthn.lib.response import Response
 from webauthn.lib.utils import base64UrlDecode, generateId, stringToBase64Url
 from webauthn.lib.values import Values
-from webauthn.models import Key, Session, User
+from webauthn.models import Key, Session, User, RemoteSession
 
 
 @csrf_exempt
@@ -58,11 +59,21 @@ def assertion_options(request):
     Session.objects.create(challenge=stringToBase64Url(challenge),
                            user=user, time=now, function="assertion")
 
+    # 古いセッションを削除
+    for s in Session.objects.all():
+        if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            s.delete()
+    for s in RemoteSession.objects.all():
+        if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            s.delete()
+
     return HttpResponse(json.dumps(options))
 
 
 @csrf_exempt
 def assertion_result(request):
+    now = timezone.now()
+
     try:
         # POSTのみ受付
         if request.method != 'POST':
@@ -99,6 +110,10 @@ def assertion_result(request):
         if sessions.count() != 1:
             raise InvalidValueException("clientDataJson.challenge")
         session = sessions.first()
+
+        # 時刻確認
+        if session.time >= now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            raise InvalidValueException("session timeout")
 
         # userの取得
         user = None
@@ -138,6 +153,19 @@ def assertion_result(request):
         # signCountの更新
         pubKey.signCount = authData.signCount
         pubKey.save()
+
+        # RemoteChallengeがあったら更新
+        if 'remote_challenge' in post_data:
+            try:
+                s = RemoteSession.objects.get(
+                    challenge=post_data['remote_challenge'], user=user)
+                if s.time > now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+                    raise InvalidValueException('remote_challenge')
+                s.verified = True
+                s.save()
+
+            except User.DoesNotExist:
+                raise InvalidValueException('remote_challenge')
 
         return HttpResponse(Response.success({'username': pubKey.user.name}))
 

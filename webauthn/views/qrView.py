@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -9,7 +10,7 @@ from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.response import Response
 from webauthn.lib.utils import generateId, stringToBase64Url
 from webauthn.lib.values import Values
-from webauthn.models import Session, User
+from webauthn.models import RemoteSession, User
 
 
 @csrf_exempt
@@ -33,14 +34,14 @@ def generate(request):
 
         # QR用Session生成
         now = timezone.now()
-        challenge = generateId(Values.CHALLENGE_LENGTH)
-        Session.objects.create(challenge=stringToBase64Url(challenge),
-                               user=user, time=now, function="qr")
+        challenge = stringToBase64Url(generateId(Values.CHALLENGE_LENGTH))
+        RemoteSession.objects.create(challenge=challenge,
+                                     user=user, time=now, function="qr")
 
         url = Values.ORIGIN + \
             reverse('qr_verify') + "?challenge=" + challenge
 
-        return HttpResponse(Response.success({'url': url}))
+        return HttpResponse(Response.success({'url': url, 'challenge': challenge}))
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
@@ -52,7 +53,7 @@ def verify(request):
         if request.method != 'GET':
             raise FormatException("http method")
 
-        # username取得
+        # challenge取得
         if 'challenge' not in request.GET:
             raise FormatException('challenge')
         challenge = request.GET.get('challenge')
@@ -64,3 +65,38 @@ def verify(request):
 
     except FormatException as e:
         return HttpResponse(Response.formatError(str(e)))
+
+
+def check(request):
+    now = timezone.now()
+    try:
+        # GETのみ受付
+        if request.method != 'GET':
+            raise FormatException("http method")
+
+        # challenge取得
+        if 'challenge' not in request.GET:
+            raise FormatException('challenge')
+        challenge = request.GET.get('challenge')
+
+        # RemoteSession取得
+        try:
+            session = RemoteSession.objects.get(challenge=challenge)
+        except User.DoesNotExist:
+            raise InvalidValueException("challenge")
+
+        # 認証済みだったらOKを返す
+        if session.verified:
+            session.delete()
+
+            if session.time >= now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+                raise InvalidValueException("session timeout")
+
+            return HttpResponse(Response.success({'verified': True}))
+
+        return HttpResponse(Response.success({'verified': False}))
+
+    except FormatException as e:
+        return HttpResponse(Response.formatError(str(e)))
+    except InvalidValueException as e:
+        return HttpResponse(Response.invalidValueError(str(e)))

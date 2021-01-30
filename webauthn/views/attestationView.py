@@ -14,7 +14,7 @@ from webauthn.lib.exceptions import (FormatException,
 from webauthn.lib.response import Response
 from webauthn.lib.utils import generateId, stringToBase64Url
 from webauthn.lib.values import Values
-from webauthn.models import Key, Session, User
+from webauthn.models import Key, RemoteSession, Session, User
 
 
 @csrf_exempt
@@ -90,6 +90,9 @@ def attestation_options(request):
 
     # 古いセッションを削除
     for s in Session.objects.all():
+        if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            s.delete()
+    for s in RemoteSession.objects.all():
         if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
             s.delete()
 

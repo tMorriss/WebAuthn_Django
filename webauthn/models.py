@@ -24,3 +24,7 @@ class Session(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     time = models.DateTimeField()
     function = models.CharField(max_length=11)
+
+
+class RemoteSession(Session):
+    verified = models.BooleanField(default=False)
