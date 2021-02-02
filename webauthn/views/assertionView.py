@@ -138,11 +138,10 @@ def assertion_result(request):
 
         # 公開鍵の検証
         try:
-            pubKeys = Key.objects.get(
+            pubKey = Key.objects.get(
                 user=user, credentialId=post_data['id'])
         except Key.DoesNotExist:
             raise InvalidValueException('public key is missing')
-        pubKey = pubKeys[0]
         dataToVerify = authData.authData + clientData.hash
         if not PublicKey.verify(
                 pubKey.credentialPublicKey,
