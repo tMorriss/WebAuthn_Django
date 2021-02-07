@@ -18,4 +18,4 @@ def stringToBase64Url(text):
 
 
 def base64UrlDecode(text):
-    return base64.b64decode(text.replace('-', '+').replace('_', '/') + ('=' * (len(text) % 4)))
+    return base64.b64decode(text.replace('-', '+').replace('_', '/') + ('=' * (4 - len(text) % 4)))
