@@ -11,18 +11,18 @@ from webauthn.lib.values import Values
 
 class PublicKey:
     @staticmethod
-    def verify(pubKey, data, sig, alg):
+    def verify(pub_key, data, sig, alg):
         if alg == Values.ALG_LIST['RS256']:
             try:
                 h = SHA256.new(data)
-                k = RSA.import_key(pubKey)
+                k = RSA.import_key(pub_key)
                 pkcs1_15.new(k).verify(h, sig)
                 return True
             except ValueError:
                 return False
         if alg == Values.ALG_LIST['ES256']:
             vk = vk = VerifyingKey.from_pem(
-                pubKey, hashfunc=hashlib.sha256)
+                pub_key, hashfunc=hashlib.sha256)
             return vk.verify(sig, data, sigdecode=sigdecode_der)
         else:
             raise UnsupportedException("alg=" + alg)

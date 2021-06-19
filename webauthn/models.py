@@ -9,12 +9,12 @@ class User(models.Model):
 
 class Key(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    credentialId = models.CharField(max_length=300)
+    credential_id = models.CharField(max_length=300)
     aaguid = models.CharField(max_length=32, default="")
     alg = models.IntegerField(default=0)
     fmt = models.CharField(max_length=30, default="")
-    credentialPublicKey = models.CharField(max_length=500)
-    signCount = models.IntegerField(default=None)
+    credential_public_key = models.CharField(max_length=500)
+    sign_count = models.IntegerField(default=None)
     transports = models.CharField(max_length=100, default="")
     regTime = models.DateTimeField()
 

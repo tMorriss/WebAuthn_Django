@@ -45,9 +45,9 @@ def key_list(request):
         return HttpResponse(Response.success({'keys': response}))
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
     except InvalidValueException as e:
-        return HttpResponse(Response.invalidValueError(str(e)))
+        return HttpResponse(Response.invalid_value_error(str(e)))
 
 
 @csrf_exempt
@@ -60,7 +60,7 @@ def delete(request):
         # pk取得
         post_data = json.loads(request.body)
         if 'pk' not in post_data:
-            return HttpResponse(Response.formatError("pk"))
+            return HttpResponse(Response.format_error("pk"))
         pk = post_data['pk']
 
         Key.objects.filter(pk=pk).delete()
@@ -68,7 +68,7 @@ def delete(request):
         if Key.objects.filter(pk=pk).count() > 0:
             return HttpResponse(Response.success())
         else:
-            return HttpResponse(Response.internalServerError('delete key'))
+            return HttpResponse(Response.internal_server_error('delete key'))
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))

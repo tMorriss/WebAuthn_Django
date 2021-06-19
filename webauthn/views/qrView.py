@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.response import Response
-from webauthn.lib.utils import generateId, stringToBase64Url
+from webauthn.lib.utils import generate_id, string_to_base64_url
 from webauthn.lib.values import Values
 from webauthn.models import RemoteSession, User
 
@@ -34,7 +34,7 @@ def generate(request):
 
         # QR用Session生成
         now = timezone.now()
-        challenge = stringToBase64Url(generateId(Values.CHALLENGE_LENGTH))
+        challenge = string_to_base64_url(generate_id(Values.CHALLENGE_LENGTH))
         RemoteSession.objects.create(challenge=challenge,
                                      user=user, time=now, function="qr")
 
@@ -44,7 +44,7 @@ def generate(request):
         return HttpResponse(Response.success({'url': url, 'challenge': challenge}))
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
 
 
 def verify(request):
@@ -64,7 +64,7 @@ def verify(request):
         return render(request, 'qr_verify.html', content)
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
 
 
 def check(request):
@@ -97,6 +97,6 @@ def check(request):
         return HttpResponse(Response.success({'verified': False}))
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
     except InvalidValueException as e:
-        return HttpResponse(Response.invalidValueError(str(e)))
+        return HttpResponse(Response.invalid_value_error(str(e)))

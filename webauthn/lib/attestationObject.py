@@ -4,14 +4,14 @@ from webauthn.lib.attestationStatement import AndroidSafetyNet, Apple, Packed
 from webauthn.lib.authData import AuthData
 from webauthn.lib.exceptions import FormatException, UnsupportedException
 from webauthn.lib.metadata import MetaDataService
-from webauthn.lib.utils import base64UrlDecode
+from webauthn.lib.utils import base64_url_decode
 from webauthn.lib.values import Values
 
 
 class AttestationObject:
 
     def __init__(self, raw):
-        cbor = cbor2.loads(base64UrlDecode(raw))
+        cbor = cbor2.loads(base64_url_decode(raw))
 
         # validate
         if 'fmt' not in cbor:
@@ -22,11 +22,11 @@ class AttestationObject:
             raise FormatException('attestationObject.authData')
 
         self.fmt = cbor['fmt']
-        self.attStmt = cbor['attStmt']
-        self.authData = AuthData(cbor['authData'])
+        self.att_stmt = cbor['attStmt']
+        self.auth_data = AuthData(cbor['authData'])
 
-    def __extractPubKey(self):
-        pkey = cbor2.loads(self.authData.rawPkey)
+    def __extract_pub_key(self):
+        pkey = cbor2.loads(self.auth_data.raw_pub_key)
         if pkey.keys() <= {1, 3}:
             raise FormatException("pkey")
 
@@ -51,25 +51,25 @@ class AttestationObject:
 
         raise UnsupportedException("pubKey alg")
 
-    def validateAttStmt(self, clientDataHash):
+    def validate_att_stmt(self, client_data_hash):
 
         # fmtに対応したvalidatorを読み込み
-        attStmt = None
+        att_stmt = None
         if self.fmt == 'packed':
-            attStmt = Packed(self.attStmt)
+            att_stmt = Packed(self.att_stmt)
         elif self.fmt == 'android-safetynet':
             metadata = MetaDataService()
-            metadata.get(self.authData.aaguid)
+            metadata.get(self.auth_data.aaguid)
 
-            attStmt = AndroidSafetyNet(self.attStmt)
-            attStmt.add_root_certificate(metadata)
+            att_stmt = AndroidSafetyNet(self.att_stmt)
+            att_stmt.add_root_certificate(metadata)
         elif self.fmt == 'apple':
-            attStmt = Apple(self.attStmt)
+            att_stmt = Apple(self.att_stmt)
         else:
             raise UnsupportedException("attestationObject.fmt=" + self.fmt)
 
-        dataToVerify = self.authData.authData + clientDataHash
-        self.credentialPublicKey = self.__extractPubKey()
+        data_to_verify = self.auth_data.auth_data + client_data_hash
+        self.credential_public_key = self.__extract_pub_key()
 
         # それぞれのattStmtの検証
-        attStmt.validate(dataToVerify, self.credentialPublicKey)
+        att_stmt.validate(data_to_verify, self.credential_public_key)

@@ -9,7 +9,7 @@ from webauthn.lib.exceptions import (InternalServerErrorException,
                                      InvalidValueException,
                                      UnsupportedException)
 from webauthn.lib.jwt import JWT
-from webauthn.lib.utils import bytesToBase64Url
+from webauthn.lib.utils import bytes_to_base64_url
 
 
 class MetaDataService:
@@ -57,19 +57,19 @@ class MetaDataService:
         if r.status_code != 200:
             raise InternalServerErrorException("get metadata")
 
-        base64Text = r.text
-        self.metadata = json.loads(base64.b64decode(base64Text))
+        base64_text = r.text
+        self.metadata = json.loads(base64.b64decode(base64_text))
 
         # hash確認
-        digest = hashlib.sha256(base64Text.encode()).digest()
-        base64UrlDigest = bytesToBase64Url(digest)
-        if self.entry['hash'] != base64UrlDigest:
+        digest = hashlib.sha256(base64_text.encode()).digest()
+        base64_url_digest = bytes_to_base64_url(digest)
+        if self.entry['hash'] != base64_url_digest:
             raise UnsupportedException('metadata.entry.hash')
 
         # statusの確認
         if 'statusReports' not in self.entry or len(self.entry['statusReports']) <= 0:
             raise UnsupportedException('metadata.entry.statusReports')
-        effectiveDate = None
+        effective_date = None
         status = None
         # 最新のstatus確認
         for r in self.entry['statusReports']:
@@ -81,8 +81,8 @@ class MetaDataService:
                     'metadata.entry.statusReports.effectiveDate')
             t = datetime.datetime.strptime(r['effectiveDate'], '%Y-%m-%d')
             d = datetime.date(t.year, t.month, t.day)
-            if effectiveDate is None or effectiveDate < d:
-                effectiveDate = d
+            if effective_date is None or effective_date < d:
+                effective_date = d
                 status = r['status']
         # 承認されているか確認
         if not status.startswith('FIDO_CERTIFIED'):

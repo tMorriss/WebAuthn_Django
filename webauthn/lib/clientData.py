@@ -2,7 +2,7 @@ import hashlib
 import json
 
 from webauthn.lib.exceptions import FormatException, InvalidValueException
-from webauthn.lib.utils import base64UrlDecode
+from webauthn.lib.utils import base64_url_decode
 from webauthn.lib.values import Values
 
 
@@ -10,11 +10,11 @@ class ClientData:
     def __init__(self, raw):
 
         # デコード
-        clientData = base64UrlDecode(raw).decode('utf-8')
+        client_data = base64_url_decode(raw).decode('utf-8')
         self.hash = hashlib.sha256(
-            clientData.encode('utf-8')).digest()
+            client_data.encode('utf-8')).digest()
         try:
-            self.clientDataJson = json.loads(clientData)
+            self.client_data_json = json.loads(client_data)
         except json.decoder.JSONDecodeError:
             raise FormatException('clientDataJSON')
 
@@ -38,8 +38,8 @@ class ClientData:
         if self.clientDataJson['origin'] != Values.ORIGIN:
             raise InvalidValueException("clientDataJson.origin")
 
-    def validateCreate(self):
+    def validate_create(self):
         self.__validate("create")
 
-    def validateGet(self):
+    def validate_get(self):
         self.__validate("get")

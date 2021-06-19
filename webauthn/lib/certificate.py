@@ -45,14 +45,14 @@ class Certificate:
         if not Certificate.verify(self.chain.public_key(), self.cert):
             raise InvalidValueException("cert")
         # 中間-Root
-        isValud = False
+        is_valud = False
         for c in self.roots:
             if Certificate.verify(c.public_key(), self.chain):
-                isValud = True
+                is_valud = True
                 # expire
                 if c.not_valid_before > now or c.not_valid_after < now:
                     raise InvalidValueException("root cert expire")
-        if not isValud:
+        if not is_valud:
             raise InvalidValueException("chain")
 
         # 証明書のexpire

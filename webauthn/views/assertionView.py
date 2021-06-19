@@ -9,7 +9,7 @@ from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.publicKey import PublicKey
 from webauthn.lib.response import Response
-from webauthn.lib.utils import base64UrlDecode, generateId, stringToBase64Url
+from webauthn.lib.utils import base64_url_decode, generate_id, string_to_base64_url
 from webauthn.lib.values import Values
 from webauthn.models import Key, RemoteSession, Session, User
 
@@ -19,11 +19,11 @@ def assertion_options(request):
     try:
         # POSTのみ受付
         if request.method != 'POST':
-            return HttpResponse(Response.formatError("http method"))
+            return HttpResponse(Response.format_error("http method"))
 
         post_data = json.loads(request.body)
 
-        challenge = generateId(Values.CHALLENGE_LENGTH)
+        challenge = generate_id(Values.CHALLENGE_LENGTH)
         options = {
             "statusCode": Values.SUCCESS_CODE,
             "challenge": challenge,
@@ -57,7 +57,7 @@ def assertion_options(request):
 
         # challengeの保存
         now = timezone.now()
-        Session.objects.create(challenge=stringToBase64Url(challenge),
+        Session.objects.create(challenge=string_to_base64_url(challenge),
                                user=user, time=now, function="assertion")
 
         # 古いセッションを削除
@@ -71,7 +71,7 @@ def assertion_options(request):
         return HttpResponse(json.dumps(options))
 
     except InvalidValueException as e:
-        return HttpResponse(Response.invalidValueError(str(e)))
+        return HttpResponse(Response.invalid_value_error(str(e)))
 
 
 @csrf_exempt
@@ -102,11 +102,11 @@ def assertion_result(request):
             raise FormatException("response.signature")
 
         # clientDataの読み込み
-        clientData = ClientData(response['clientDataJSON'])
+        client_data = ClientData(response['clientDataJSON'])
         # 検証
-        clientData.validateGet()
+        client_data.validate_get()
         # challenge取得
-        challenge = clientData.challenge
+        challenge = client_data.challenge
 
         # challengeの確認
         try:
@@ -133,30 +133,30 @@ def assertion_result(request):
             user = session.user
 
         # authenticatorDataの検証
-        authData = AuthData(base64UrlDecode(response['authenticatorData']))
-        authData.validate()
+        auth_data = AuthData(base64_url_decode(response['authenticatorData']))
+        auth_data.validate()
 
         # 公開鍵の検証
         try:
-            pubKey = Key.objects.get(
+            pub_key = Key.objects.get(
                 user=user, credentialId=post_data['id'])
         except Key.DoesNotExist:
             raise InvalidValueException('public key is missing')
-        dataToVerify = authData.authData + clientData.hash
+        data_to_verify = auth_data.authData + client_data.hash
         if not PublicKey.verify(
-                pubKey.credentialPublicKey,
-                dataToVerify,
-                base64UrlDecode(response['signature']),
-                pubKey.alg):
+                pub_key.credential_public_key,
+                data_to_verify,
+                base64_url_decode(response['signature']),
+                pub_key.alg):
             raise InvalidValueException('response.signature')
 
         # signCountの検証
-        if pubKey.fmt not in Values.SIGN_COUNT_IGNORE_LIST and pubKey.signCount >= authData.signCount:
+        if pub_key.fmt not in Values.SIGN_COUNT_IGNORE_LIST and pub_key.signCount >= auth_data.signCount:
             raise InvalidValueException('signCount')
 
         # signCountの更新
-        pubKey.signCount = authData.signCount
-        pubKey.save()
+        pub_key.signCount = auth_data.signCount
+        pub_key.save()
 
         # RemoteChallengeがあったら更新
         if 'remote_challenge' in post_data:
@@ -171,9 +171,9 @@ def assertion_result(request):
             except User.DoesNotExist:
                 raise InvalidValueException('remote_challenge')
 
-        return HttpResponse(Response.success({'username': pubKey.user.name}))
+        return HttpResponse(Response.success({'username': pub_key.user.name}))
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
     except InvalidValueException as e:
-        return HttpResponse(Response.invalidValueError(str(e)))
+        return HttpResponse(Response.invalid_value_error(str(e)))
