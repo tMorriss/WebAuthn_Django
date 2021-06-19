@@ -36,15 +36,15 @@ class Packed(AttestationStatement):
         self.att_stmt = att_stmt
         self.alg = att_stmt['alg']
 
-    def validate(self, data_to_verify, pubKey):
+    def validate(self, data_to_verify, pub_key):
         # algが対応していることの確認
         if self.alg not in Values.ALG_LIST.values():
             self.errorMsg = 'alg'
             return False
 
-        if "x5c" not in self.attStmt:
-            if not PublicKey.verify(pubKey, data_to_verify,
-                                    self.attStmt['sig'], self.alg):
+        if "x5c" not in self.att_stmt:
+            if not PublicKey.verify(pub_key, data_to_verify,
+                                    self.att_stmt['sig'], self.alg):
                 raise InvalidValueException("attStmt.sig")
         else:
             raise UnsupportedException("packed with x5c")
@@ -117,32 +117,32 @@ class AndroidSafetyNet(AttestationStatement):
 
 
 class Apple(AttestationStatement):
-    def __init__(self, attStmt):
+    def __init__(self, att_stmt):
         # validate
-        if 'x5c' not in attStmt:
+        if 'x5c' not in att_stmt:
             raise FormatException('attStmt.x5c')
 
-        self.attStmt = attStmt
+        self.att_stmt = att_stmt
         self.cert = Certificate()
 
     def validate(self, data_to_verify, pub_key):
         now = dt.now()
 
         # 証明書読み込み
-        self.cert.set_cert_der(self.attStmt["x5c"][0])
-        self.cert.set_chain_der(self.attStmt["x5c"][1])
+        self.cert.set_cert_der(self.att_stmt["x5c"][0])
+        self.cert.set_chain_der(self.att_stmt["x5c"][1])
 
         # 1.2.840.113635.100.8.2読み込み
         nonce = self.cert.get_extension('1.2.840.113635.100.8.2')
         # nonce比較
         expect = hashlib.sha256(data_to_verify).digest()
         if nonce[6:] != expect:
-            raise InvalidValueException('attStmt.x5c.extension')
+            raise InvalidValueException('att_stmt.x5c.extension')
 
         # 公開鍵比較
         cert_pubkey = self.cert.get_cert_pubkey_pem()
         if pub_key.replace('\n', '') != cert_pubkey.replace('\n', ''):
-            raise InvalidValueException('attStmt.x5c.chain.pubkey')
+            raise InvalidValueException('att_stmt.x5c.chain.pubkey')
 
         # 証明書検証
         self.cert.add_root_pem(self.__get_apple_root_cert())
