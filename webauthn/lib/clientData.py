@@ -20,22 +20,22 @@ class ClientData:
 
     def __validate(self, function):
         # 存在確認
-        if 'type' not in self.clientDataJson:
+        if 'type' not in self.client_ata_json:
             raise FormatException("clientDataJson.type")
-        if 'challenge' not in self.clientDataJson:
+        if 'challenge' not in self.client_ata_json:
             raise FormatException("clientDataJson.challenge")
-        if 'origin' not in self.clientDataJson:
+        if 'origin' not in self.client_data_json:
             raise FormatException("clientDataJson.origin")
 
         # typeの確認
-        if self.clientDataJson['type'] != 'webauthn.' + function:
+        if self.client_data_json['type'] != 'webauthn.' + function:
             raise InvalidValueException("clientDataJson.type")
 
         # challengeを取り出す
-        self.challenge = self.clientDataJson['challenge']
+        self.challenge = self.client_data_json['challenge']
 
         # originの確認
-        if self.clientDataJson['origin'] != Values.ORIGIN:
+        if self.client_data_json['origin'] != Values.ORIGIN:
             raise InvalidValueException("clientDataJson.origin")
 
     def validate_create(self):
