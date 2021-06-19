@@ -1,7 +1,7 @@
 import cbor2
 from Crypto.PublicKey import ECC, RSA
 from webauthn.lib.attestationStatement import AndroidSafetyNet, Apple, Packed
-from webauthn.lib.authData import AuthData
+from webauthn.lib.auth_data import AuthData
 from webauthn.lib.exceptions import FormatException, UnsupportedException
 from webauthn.lib.metadata import MetaDataService
 from webauthn.lib.utils import base64_url_decode

@@ -135,13 +135,13 @@ def attestation_result(request):
             raise FormatException("attestationObject")
 
         # authDataの検証
-        attestation_object.authData.validate()
+        attestation_object.auth_data.validate()
 
         # attStmtの検証
         attestation_object.validate_att_stmt(client_data.hash)
 
         # すでに登録済みか確認
-        if Key.objects.filter(credential_id=attestation_object.authData.credential_id).count() != 0:
+        if Key.objects.filter(credential_id=attestation_object.auth_data.credential_id).count() != 0:
             raise InvalidValueException("already registered")
 
         # challengeの確認
@@ -162,12 +162,12 @@ def attestation_result(request):
         # 保存
         Key.objects.create(
             user=session.user,
-            credential_id=attestation_object.authData.credential_id,
-            aaguid=attestation_object.authData.aaguid,
+            credential_id=attestation_object.auth_data.credential_id,
+            aaguid=attestation_object.auth_data.aaguid,
             alg=attestation_object.alg,
             fmt=attestation_object.fmt,
             credential_public_key=attestation_object.credential_public_key,
-            signCount=attestation_object.authData.signCount,
+            signCount=attestation_object.auth_data.signCount,
             transports=json.dumps(response['transports']),
             regTime=now
         )

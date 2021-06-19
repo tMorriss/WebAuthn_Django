@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from webauthn.lib.authData import AuthData
+from webauthn.lib.auth_data import AuthData
 from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.publicKey import PublicKey
@@ -142,7 +142,7 @@ def assertion_result(request):
                 user=user, credential_id=post_data['id'])
         except Key.DoesNotExist:
             raise InvalidValueException('public key is missing')
-        data_to_verify = auth_data.authData + client_data.hash
+        data_to_verify = auth_data.auth_data + client_data.hash
         if not PublicKey.verify(
                 pub_key.credential_public_key,
                 data_to_verify,
