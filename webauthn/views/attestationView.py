@@ -167,7 +167,7 @@ def attestation_result(request):
             alg=attestation_object.alg,
             fmt=attestation_object.fmt,
             credential_public_key=attestation_object.credential_public_key,
-            signCount=attestation_object.auth_data.signCount,
+            sign_count=attestation_object.auth_data.sign_count,
             transports=json.dumps(response['transports']),
             regTime=now
         )

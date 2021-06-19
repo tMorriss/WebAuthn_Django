@@ -13,7 +13,7 @@ class AuthData:
         flags = self.auth_data[32:33]
         self.up = (1 & int.from_bytes(flags, byteorder='big')) == 1
         self.uv = (4 & int.from_bytes(flags, byteorder='big')) == 4
-        self.signCount = int.from_bytes(
+        self.sign_count = int.from_bytes(
             self.auth_data[33:37], byteorder='big')
         self.aaguid = self.auth_data[37:53].hex()
 

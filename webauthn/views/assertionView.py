@@ -151,11 +151,11 @@ def assertion_result(request):
             raise InvalidValueException('response.signature')
 
         # signCountの検証
-        if pub_key.fmt not in Values.SIGN_COUNT_IGNORE_LIST and pub_key.signCount >= auth_data.signCount:
+        if pub_key.fmt not in Values.SIGN_COUNT_IGNORE_LIST and pub_key.sign_count >= auth_data.sign_count:
             raise InvalidValueException('signCount')
 
         # signCountの更新
-        pub_key.signCount = auth_data.signCount
+        pub_key.sign_count = auth_data.sign_count
         pub_key.save()
 
         # RemoteChallengeがあったら更新
