@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from webauthn.lib.auth_data import AuthData
+from webauthn.lib.authData import AuthData
 from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.publicKey import PublicKey
