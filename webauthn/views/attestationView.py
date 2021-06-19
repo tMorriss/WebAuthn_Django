@@ -78,7 +78,7 @@ def attestation_options(request):
     for c in exclude_credentials:
         options["excludeCredentials"].append({
             "type": "public-key",
-            "id": c.credentialId,
+            "id": c.credential_id,
             "transports": ["internal"]
         })
 
@@ -141,7 +141,7 @@ def attestation_result(request):
         attestation_object.validate_att_stmt(client_data.hash)
 
         # すでに登録済みか確認
-        if Key.objects.filter(credentialId=attestation_object.authData.credentialId).count() != 0:
+        if Key.objects.filter(credential_id=attestation_object.authData.credential_id).count() != 0:
             raise InvalidValueException("already registered")
 
         # challengeの確認
@@ -162,7 +162,7 @@ def attestation_result(request):
         # 保存
         Key.objects.create(
             user=session.user,
-            credentialId=attestation_object.authData.credentialId,
+            credential_id=attestation_object.authData.credential_id,
             aaguid=attestation_object.authData.aaguid,
             alg=attestation_object.alg,
             fmt=attestation_object.fmt,

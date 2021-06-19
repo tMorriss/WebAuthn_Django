@@ -51,7 +51,7 @@ def assertion_options(request):
             for c in credentials:
                 options['allowCredentials'].append({
                     "type": "public-key",
-                    "id": c.credentialId,
+                    "id": c.credential_id,
                     "transports": json.loads(c.transports)
                 })
 
@@ -139,7 +139,7 @@ def assertion_result(request):
         # 公開鍵の検証
         try:
             pub_key = Key.objects.get(
-                user=user, credentialId=post_data['id'])
+                user=user, credential_id=post_data['id'])
         except Key.DoesNotExist:
             raise InvalidValueException('public key is missing')
         data_to_verify = auth_data.authData + client_data.hash
