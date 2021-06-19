@@ -20,9 +20,9 @@ class ClientData:
 
     def __validate(self, function):
         # 存在確認
-        if 'type' not in self.client_ata_json:
+        if 'type' not in self.client_data_json:
             raise FormatException("clientDataJson.type")
-        if 'challenge' not in self.client_ata_json:
+        if 'challenge' not in self.client_data_json:
             raise FormatException("clientDataJson.challenge")
         if 'origin' not in self.client_data_json:
             raise FormatException("clientDataJson.origin")
