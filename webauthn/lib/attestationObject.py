@@ -1,6 +1,7 @@
 import cbor2
 from Crypto.PublicKey import ECC, RSA
-from webauthn.lib.attestationStatement import AndroidSafetyNet, Apple, Packed
+from webauthn.lib.attestationStatement import (
+    AndroidSafetyNet, Apple, Packed, Tpm)
 from webauthn.lib.authData import AuthData
 from webauthn.lib.exceptions import FormatException, UnsupportedException
 from webauthn.lib.metadata import MetaDataService
@@ -65,6 +66,8 @@ class AttestationObject:
             att_stmt.add_root_certificate(metadata)
         elif self.fmt == 'apple':
             att_stmt = Apple(self.att_stmt)
+        elif self.fmt == 'tpm':
+            att_stmt = Tpm(self.att_stmt)
         else:
             raise UnsupportedException("attestationObject.fmt=" + self.fmt)
 

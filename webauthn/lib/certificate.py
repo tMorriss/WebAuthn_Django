@@ -6,7 +6,8 @@ from cryptography.hazmat.primitives.asymmetric.ec import ECDSA
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.hashes import SHA256, SHA384
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-from cryptography.x509 import ExtensionNotFound, ObjectIdentifier
+from cryptography.x509 import ExtensionNotFound, GeneralName, ObjectIdentifier
+from cryptography.x509.oid import ExtensionOID
 from webauthn.lib.exceptions import InvalidValueException, UnsupportedException
 
 
@@ -60,6 +61,21 @@ class Certificate:
             raise InvalidValueException("cert.expire")
         if self.chain.not_valid_before > now or self.chain.not_valid_after < now:
             raise InvalidValueException("chain.expire")
+
+    def is_cert_ver_3(self):
+        return self.cert.version == x509.Version.v3
+
+    def get_cert_subject(self):
+        return self.cert.subject.rfc4514_string()
+
+    def get_subject_alternative_name(self):
+        try:
+            san = self.cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+            if san is None:
+                raise InvalidValueException('AttestationStatement.aikCert.SAN')
+            return san.value.get_values_for_type(GeneralName)
+        except ExtensionNotFound:
+            return None
 
     @ staticmethod
     def verify(key, cert):

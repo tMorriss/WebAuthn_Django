@@ -3,6 +3,7 @@ import hashlib
 from abc import ABCMeta, abstractmethod
 from datetime import datetime as dt
 
+import cbor2
 import requests
 from webauthn.lib.certificate import Certificate
 from webauthn.lib.exceptions import (FormatException,
@@ -11,7 +12,7 @@ from webauthn.lib.exceptions import (FormatException,
                                      UnsupportedException)
 from webauthn.lib.jwt import JWT
 from webauthn.lib.publicKey import PublicKey
-from webauthn.lib.utils import base64_url_decode
+from webauthn.lib.utils import base64_url_decode, get_hash
 from webauthn.lib.values import Values
 
 
@@ -39,8 +40,7 @@ class Packed(AttestationStatement):
     def validate(self, data_to_verify, pub_key):
         # algが対応していることの確認
         if self.alg not in Values.ALG_LIST.values():
-            self.errorMsg = 'alg'
-            return False
+            raise UnsupportedException('AttestationStatemtnt.alg')
 
         if "x5c" not in self.att_stmt:
             if not PublicKey.verify(pub_key, data_to_verify,
@@ -157,3 +157,113 @@ class Apple(AttestationStatement):
             raise InternalServerErrorException("get apple root cert")
 
         return r.text
+
+
+class Tpm(AttestationStatement):
+    def __init__(self, att_stmt):
+        # validate
+        if 'ver' not in att_stmt:
+            raise FormatException('attStmt.ver')
+        self.ver = att_stmt['ver']
+        if 'alg' not in att_stmt:
+            raise FormatException('attStmt.alg')
+        self.alg = att_stmt['alg']
+        if 'x5c' not in att_stmt:
+            raise FormatException('attStmt.x5c')
+        self.x5c = att_stmt['x5c']
+        if 'sig' not in att_stmt:
+            raise FormatException('attStmt.sig')
+        self.sig = att_stmt['sig']
+        if 'certInfo' not in att_stmt:
+            raise FormatException('attStmt.certInfo')
+        self.cert_info = att_stmt['certInfo']
+        if 'pubArea' not in att_stmt:
+            raise FormatException('attStmt.pubArea')
+        self.pub_area = att_stmt['pubArea']
+
+    def validate(self, att_to_be_signed, pub_key):
+        if self.ver != '2.0':
+            raise InvalidValueException('attStmt.ver=' + self.ver)
+        # algが対応していることの確認
+        if self.alg not in Values.ALG_LIST.values():
+            raise UnsupportedException('AttestationStatemtnt.alg=' + str(self.alg))
+
+        # certInfoの中身を取り出す
+        cert_info = self.cert_info
+
+        cert_info_magic = cert_info[:4]
+        cert_info = cert_info[4:]
+
+        cert_info_type = cert_info[:2]
+        cert_info = cert_info[2:]
+
+        size = int.from_bytes(cert_info[:2], byteorder='big')
+        cert_info = cert_info[size + 2:]
+
+        size = int.from_bytes(cert_info[:2], byteorder='big')
+        cert_info = cert_info[2:]
+
+        cert_info_extra_data = cert_info[:size]
+        cert_info = cert_info[size:]
+
+        cert_info = cert_info[25:]
+
+        size = int.from_bytes(cert_info[:2], byteorder='big')
+        cert_info = cert_info[2:]
+
+        cert_info_attested_certify_name = cert_info[:size]
+
+        # pubAreaの中身を取り出す
+        pub_area = self.pub_area
+
+        pub_area_type = pub_area[:2]
+        pub_area = pub_area[2:]
+
+        pub_area_name_alg = pub_area[:2]
+        pub_area = pub_area[2:]
+
+        # Verify that magic is set to TPM_GENERATED_VALUE.
+        if cert_info_magic != Values.TPM_GENERATED_VALUE:
+            raise InvalidValueException('AttestationStatement.certInfo.magic')
+
+        # Verify that type is set to TPM_ST_ATTEST_CERTIFY.
+        if cert_info_type != Values.TPM_ST_ATTEST_CERTIFY:
+            raise InvalidValueException('AttestationStatement.certInfo.type')
+
+        # Verify that extraData is set to the hash of attToBeSigned using the hash algorithm employed in "alg".
+        if cert_info_extra_data != get_hash(att_to_be_signed, self.alg):
+            raise InvalidValueException('AttestationStatement.certInfo.extraData')
+
+        # Verify attested
+        expected_name = None
+        if pub_area_name_alg == b'\x00\x0b':
+            expected_name = pub_area_name_alg + hashlib.sha256(self.pub_area).digest()
+
+        if cert_info_attested_certify_name != expected_name:
+            raise InvalidValueException('AttestationStatement.certInfo.attested.certify.name or AttestationStatement.pubArea.nameAlg')
+
+        # 証明書読み込み
+        cert = Certificate()
+        cert.set_cert_der(self.x5c[0])
+        cert.set_chain_der(self.x5c[1])
+
+        # Verify the sig is a valid signature over certInfo using the attestation public key in aikCert with the algorithm specified in alg.
+        if not PublicKey.verify(cert.get_cert_pubkey_pem(), self.cert_info, self.sig, self.alg):
+            raise InvalidValueException('AttestationStatement.sig')
+
+        # Version MUST be set to 3.
+        if not cert.is_cert_ver_3:
+            raise InvalidValueException('AttestationStatement.aikCert.Version')
+
+        # Subject field MUST be set to empty.
+        if cert.get_cert_subject() != '':
+            raise InvalidValueException('AttestationStatement.aikCert.Subject')
+
+        san = cert.get_subject_alternative_name()
+        print(san[0])
+        print(type(san[0]))
+        print(san[0].get_attributes_for_oid('2.23.133.2.1'))
+
+        # for e in cert.cert.extensions:
+        #     print(e.oid)
+        # print(base64.b64encode(self.x5c[0]))

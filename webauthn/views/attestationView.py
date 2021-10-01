@@ -160,17 +160,17 @@ def attestation_result(request):
         session.delete()
 
         # 保存
-        Key.objects.create(
-            user=session.user,
-            credential_id=attestation_object.auth_data.credential_id,
-            aaguid=attestation_object.auth_data.aaguid,
-            alg=attestation_object.alg,
-            fmt=attestation_object.fmt,
-            credential_public_key=attestation_object.credential_public_key,
-            sign_count=attestation_object.auth_data.sign_count,
-            transports=json.dumps(response['transports']),
-            regTime=now
-        )
+        # Key.objects.create(
+        #     user=session.user,
+        #     credential_id=attestation_object.auth_data.credential_id,
+        #     aaguid=attestation_object.auth_data.aaguid,
+        #     alg=attestation_object.alg,
+        #     fmt=attestation_object.fmt,
+        #     credential_public_key=attestation_object.credential_public_key,
+        #     sign_count=attestation_object.auth_data.sign_count,
+        #     transports=json.dumps(response['transports']),
+        #     regTime=now
+        # )
 
         return HttpResponse(Response.success({'username': session.user.name}))
     except FormatException as e:
