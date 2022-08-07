@@ -40,7 +40,7 @@ class Packed(AttestationStatement):
         # algが対応していることの確認
         if self.alg not in Values.ALG_LIST.values():
             self.errorMsg = 'alg'
-            return False
+            raise UnsupportedException("attStmt.alg")
 
         if "x5c" not in self.att_stmt:
             if not PublicKey.verify(pub_key, data_to_verify,
