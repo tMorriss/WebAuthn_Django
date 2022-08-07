@@ -25,6 +25,14 @@ class AttestationStatement(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
+class NoneFmt(AttestationStatement):
+    def __init__(self, att_stmt):
+        pass
+
+    def validate(self, data_to_verify, pub_key):
+        pass
+
+
 class Packed(AttestationStatement):
     def __init__(self, att_stmt):
         # validate

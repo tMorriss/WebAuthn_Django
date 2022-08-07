@@ -1,6 +1,6 @@
 import cbor2
 from Crypto.PublicKey import ECC, RSA
-from webauthn.lib.attestationStatement import AndroidSafetyNet, Apple, Packed
+from webauthn.lib.attestationStatement import AndroidSafetyNet, Apple, NoneFmt, Packed
 from webauthn.lib.authData import AuthData
 from webauthn.lib.exceptions import FormatException, UnsupportedException
 from webauthn.lib.metadata import MetaDataService
@@ -55,7 +55,9 @@ class AttestationObject:
 
         # fmtに対応したvalidatorを読み込み
         att_stmt = None
-        if self.fmt == 'packed':
+        if self.fmt == 'none':
+            att_stmt = NoneFmt(self.att_stmt)
+        elif self.fmt == 'packed':
             att_stmt = Packed(self.att_stmt)
         elif self.fmt == 'android-safetynet':
             metadata = MetaDataService()
