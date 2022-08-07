@@ -15,70 +15,50 @@ from webauthn.lib.utils import bytes_to_base64_url
 class MetaDataService:
 
     def get(self, aaguid):
-        self.__get_toc()
-        self.__get_entry(aaguid)
-        self.__get_metadata()
+        self.__get_blob()
+        self.__get_metadata(aaguid)
+        self.__verify_metadata()
 
-    def __get_toc(self):
-        r = requests.get(
-            "https://mds2.fidoalliance.org/",
-            {"token": os.environ.get('METADATA_TOKEN')}
-        )
+    def __get_blob(self):
+        r = requests.get("https://mds.fidoalliance.org/")
 
         if r.status_code != 200:
-            raise InternalServerErrorException("get toc")
+            raise InternalServerErrorException("get blob")
 
         try:
-            self.toc = JWT(r.text)
+            self.blob = JWT(r.text)
         except InvalidValueException:
-            raise InternalServerErrorException("toc format")
+            raise InternalServerErrorException("blob format")
 
-    def __get_entry(self, aaguid):
-        if 'entries' not in self.toc.payload:
-            raise UnsupportedException("toc.entries")
-        entries = self.toc.payload['entries']
+    def __get_metadata(self, aaguid):
+        if 'entries' not in self.blob.payload:
+            raise UnsupportedException("blob.entries")
+        entries = self.blob.payload['entries']
 
         for e in entries:
             if 'aaguid' not in e:
                 continue
 
             if e['aaguid'].replace('-', '') == aaguid:
-                self.entry = e
+                self.metadata = e
                 return
 
-        raise UnsupportedException('metadata service entry is missing')
+        raise UnsupportedException('metadata service data is missing')
 
-    def __get_metadata(self):
-        r = requests.get(
-            self.entry['url'],
-            {"token": os.environ.get('METADATA_TOKEN')}
-        )
-
-        if r.status_code != 200:
-            raise InternalServerErrorException("get metadata")
-
-        base64_text = r.text
-        self.metadata = json.loads(base64.b64decode(base64_text))
-
-        # hash確認
-        digest = hashlib.sha256(base64_text.encode()).digest()
-        base64_url_digest = bytes_to_base64_url(digest)
-        if self.entry['hash'] != base64_url_digest:
-            raise UnsupportedException('metadata.entry.hash')
-
+    def __verify_metadata(self):
         # statusの確認
-        if 'statusReports' not in self.entry or len(self.entry['statusReports']) <= 0:
-            raise UnsupportedException('metadata.entry.statusReports')
+        if 'statusReports' not in self.metadata or len(self.metadata['statusReports']) <= 0:
+            raise UnsupportedException('metadata.metadata.statusReports')
         effective_date = None
         status = None
         # 最新のstatus確認
-        for r in self.entry['statusReports']:
+        for r in self.metadata['statusReports']:
             if 'status' not in r:
                 raise UnsupportedException(
-                    'metadata.entry.statusReports.status')
+                    'metadata.metadata.statusReports.status')
             if 'effectiveDate' not in r:
                 raise UnsupportedException(
-                    'metadata.entry.statusReports.effectiveDate')
+                    'metadata.metadata.statusReports.effectiveDate')
             t = datetime.datetime.strptime(r['effectiveDate'], '%Y-%m-%d')
             d = datetime.date(t.year, t.month, t.day)
             if effective_date is None or effective_date < d:
@@ -86,7 +66,7 @@ class MetaDataService:
                 status = r['status']
         # 承認されているか確認
         if not status.startswith('FIDO_CERTIFIED'):
-            raise UnsupportedException('not certified device in meta data')
+            raise UnsupportedException('not certified device in meta data: ' + status)
 
     def get_root_certificates(self):
-        return self.metadata['attestationRootCertificates']
+        return self.metadata['metadataStatement']['attestationRootCertificates']
