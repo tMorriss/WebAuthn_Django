@@ -32,7 +32,7 @@ class AttestationObject:
 
         if pkey[1] == Values.KTY_LIST['RSA'] and pkey[3] == Values.ALG_LIST['RS256']:
             self.alg = pkey[3]
-            if pkey.keys() <= {- 1, -2}:
+            if pkey.keys() <= {-1, -2}:
                 raise FormatException("rs256")
 
             n = int.from_bytes(pkey[-1], byteorder='big')
@@ -41,7 +41,7 @@ class AttestationObject:
 
         if pkey[1] == Values.KTY_LIST['EC2'] and pkey[3] == Values.ALG_LIST['ES256']:
             self.alg = pkey[3]
-            if pkey.keys() <= {- 1, -2, -3}:
+            if pkey.keys() <= {-1, -2, -3}:
                 raise FormatException("es256")
 
             curve = Values.EC_KEYS[pkey[-1]]
