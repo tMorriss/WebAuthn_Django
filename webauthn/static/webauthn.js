@@ -1,6 +1,6 @@
 let successCode = '2000';
 
-function register() {
+function register(requireResidentKey) {
     $('#resultMsg').text("");
     if (!isUVPAA) {
         $('#resultMsg').text("isUVPAA is false");
@@ -8,6 +8,7 @@ function register() {
     }
     var options = {
         "username": $("#register_username").val(),
+        "requireResidentKey": requireResidentKey,
     }
     // optionsリクエスト
     attestation_options(options).then((response) => {

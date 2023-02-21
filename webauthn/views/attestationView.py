@@ -27,6 +27,8 @@ def attestation_options(request):
 
     if "username" not in post_data:
         return HttpResponse(Response.format_error("username"))
+    requireResidentKey = post_data['requireResidentKey'] if "requireResidentKey" in post_data else True
+
     username = post_data["username"]
     userid = hashlib.sha256(username.encode('utf-8')).hexdigest()
 
@@ -61,7 +63,7 @@ def attestation_options(request):
         "excludeCredentials": [],
         "authenticatorSelection": {
             "authenticatorAttachment": "platform",
-            "requireResidentKey": False,
+            "requireResidentKey": requireResidentKey,
             "userVerification": "preferred"
         },
         "attestation": "direct"
