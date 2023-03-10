@@ -32,6 +32,12 @@ class NoneFmt(AttestationStatement):
     def validate(self, data_to_verify, pub_key):
         pass
 
+class Tpm(AttestationStatement):
+    def __init__(self, att_stmt):
+        pass # TODO: 実装
+
+    def validate(self, data_to_verify, pub_key):
+        pass # TODO: 実装
 
 class Packed(AttestationStatement):
     def __init__(self, att_stmt):
