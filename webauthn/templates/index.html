@@ -28,13 +28,18 @@
                     $("body").css('background-color', 'red');
                     $('#resultMsg').text("isUVPAA is false");
                 }
+                // Conditional UI対応判定
+                if (PublicKeyCredential.isConditionalMediationAvailable &&
+                    PublicKeyCredential.isConditionalMediationAvailable()) {
+                    getAuthenticationChallenge();
+                }
             });
         }
     </script>
 </head>
 
 <body>
-    <input type="username" id="register_username" value="tMorriss" /><br>
+    <input type="username" id="register_username" value="tMorriss" autocomplete="webauthn" /><br>
     <button onclick="register(false)">NonResidentKey登録</button>&emsp;<button onclick="register(true)">ResidentKey登録</button><br>
     <button onclick="auth()">認証</button><br>
     <div id="resultMsg"></div>

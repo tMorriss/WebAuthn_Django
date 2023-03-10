@@ -105,6 +105,7 @@ function generateQR() {
         console.log(response);
     });
 }
+
 function auth() {
     $('#resultMsg').text("");
     if (!isUVPAA) {
@@ -128,8 +129,40 @@ function auth() {
             options.allowCredentials[i].id = base64UrlToBuffer(options.allowCredentials[i].id);
         }
 
-        // 鍵生成
+        // 生体認証
         return navigator.credentials.get({ publicKey: options });
+    }).then((credential) => {
+        // resultリクエスト
+        return assertion_result(credential);
+    }).catch(e => {
+        $('#resultMsg').text(e);
+        return;
+    }).then((response) => {
+        $('#resultMsg').text(response);
+    });
+}
+
+function getAuthenticationChallenge() {
+    $('#resultMsg').text("");
+    if (!isUVPAA) {
+        $('#resultMsg').text("isUVPAA is false");
+        return;
+    }
+    // optionsリクエスト
+    assertion_options({}).then((response) => {
+        // レスポンスをデコード
+        options = JSON.parse(response);
+        if (options.statusCode != successCode) {
+            $('#resultMsg').text(response);
+            return;
+        }
+        options.challenge = new TextEncoder().encode(options.challenge);
+        // ConditionalUI実行
+        return navigator.credentials.get({
+            mediation: 'conditional',
+            publicKey: options // `allowCredentials` can be used as a filter on top of discoverable credentials.
+        });
+
     }).then((credential) => {
         // resultリクエスト
         return assertion_result(credential);
