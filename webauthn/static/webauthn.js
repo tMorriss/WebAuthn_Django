@@ -1,4 +1,5 @@
 let successCode = '2000';
+const conditionalUiController = new AbortController();
 
 function register(requireResidentKey) {
     $('#resultMsg').text("");
@@ -116,6 +117,7 @@ function auth() {
     if ($("#register_username").val() != "") {
         options["username"] = $("#register_username").val()
     }
+    conditionalUiController.abort('AnotherSessionRequested'); //前の処理をキャンセル
     // optionsリクエスト
     assertion_options(options).then((response) => {
         // レスポンスをデコード
@@ -134,11 +136,10 @@ function auth() {
     }).then((credential) => {
         // resultリクエスト
         return assertion_result(credential);
-    }).catch(e => {
-        $('#resultMsg').text(e);
-        return;
     }).then((response) => {
         $('#resultMsg').text(response);
+    }).catch(e => {
+        $('#resultMsg').text(e);
     });
 }
 
@@ -160,16 +161,18 @@ function fireConditionalUi() {
         // ConditionalUI実行
         return navigator.credentials.get({
             mediation: 'conditional',
-            publicKey: options
+            publicKey: options,
+            signal: conditionalUiController.signal
         });
 
     }).then((credential) => {
         // resultリクエスト
         return assertion_result(credential);
-    }).catch(e => {
-        $('#resultMsg').text(e);
-        return;
     }).then((response) => {
         $('#resultMsg').text(response);
+    }).catch(e => {
+        if (e !== 'AnotherSessionRequested') {
+            $('#resultMsg').text(e);
+        }
     });
 }
