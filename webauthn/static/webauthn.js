@@ -142,7 +142,7 @@ function auth() {
     });
 }
 
-function getAuthenticationChallenge() {
+function fireConditionalUi() {
     $('#resultMsg').text("");
     if (!isUVPAA) {
         $('#resultMsg').text("isUVPAA is false");
@@ -160,7 +160,7 @@ function getAuthenticationChallenge() {
         // ConditionalUI実行
         return navigator.credentials.get({
             mediation: 'conditional',
-            publicKey: options // `allowCredentials` can be used as a filter on top of discoverable credentials.
+            publicKey: options
         });
 
     }).then((credential) => {

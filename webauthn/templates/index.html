@@ -29,9 +29,13 @@
                     $('#resultMsg').text("isUVPAA is false");
                 }
                 // Conditional UI対応判定
-                if (PublicKeyCredential.isConditionalMediationAvailable &&
-                    PublicKeyCredential.isConditionalMediationAvailable()) {
-                    getAuthenticationChallenge();
+                if (PublicKeyCredential.isConditionalMediationAvailable) {
+                    PublicKeyCredential.isConditionalMediationAvailable().then((result) => {
+                        if (result) {
+                            $('#conditionalUiEnabled').text("conditional ui is enable");
+                            fireConditionalUi();
+                        }
+                    });
                 }
             });
         }
@@ -47,6 +51,7 @@
     <div id="tblList"></div>
     <button onclick="generateQR()">QR生成</button>
     <div id="qrcode"></div>
+    <div id="conditionalUiEnabled"></div>
     <div id="verify_link"></div>
 </body>
 
