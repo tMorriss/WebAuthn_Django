@@ -11,6 +11,7 @@ function register(requireResidentKey) {
         "username": $("#register_username").val(),
         "requireResidentKey": requireResidentKey,
     }
+    conditionalUiController.abort('AnotherSessionRequested'); //前の処理をキャンセル
     // optionsリクエスト
     attestation_options(options).then((response) => {
         // レスポンスをデコード
