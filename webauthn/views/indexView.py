@@ -39,7 +39,8 @@ def key_list(request):
                 'pk': k.pk,
                 'fmt': k.fmt,
                 'credentialId': k.credential_id,
-                'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
+                'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S'),
+                'transports': k.transports,
             })
 
         return HttpResponse(Response.success({'keys': response}))

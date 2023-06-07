@@ -50,10 +50,15 @@ function showList() {
             return;
         }
 
-        tblText = "<table><tr><th>削除</th><th>fmt</th><th>登録日</th><th>credentialId</th></tr>";
+        tblText = "<table><tr><th>削除</th><th>fmt</th><th>登録日</th><th>credentialId</th><th>transports</th></tr>";
         for (let i = 0; i < responseJson.keys.length; i++) {
-            tblText += "<tr id='key-" + responseJson.keys[i].pk + "'><td><button onclick='deleteKey(" + responseJson.keys[i].pk + ")'>削除</button></td>";
-            tblText += "<td>" + responseJson.keys[i].fmt + "</td><td>" + responseJson.keys[i].regTime + "</td><td>" + responseJson.keys[i].credentialId + "</td>";
+            tblText += "<tr id='key-" + responseJson.keys[i].pk + "'>"
+                + "<td><button onclick='deleteKey(" + responseJson.keys[i].pk + ")'>削除</button></td>"
+                + "<td>" + responseJson.keys[i].fmt + "</td>"
+                + "<td>" + responseJson.keys[i].regTime + "</td>"
+                + "<td>" + responseJson.keys[i].credentialId + "</td>"
+                + "<td>" + responseJson.keys[i].transports + "</td>"
+                + "</tr>";
         }
         tblText += "</table>";
         $("#tblList").text("");
