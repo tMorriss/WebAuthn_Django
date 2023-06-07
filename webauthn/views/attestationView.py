@@ -81,7 +81,7 @@ def attestation_options(request):
         options["excludeCredentials"].append({
             "type": "public-key",
             "id": c.credential_id,
-            "transports": ["internal"]
+            "transports": json.loads(c.transports)
         })
 
     # challengeの保存
