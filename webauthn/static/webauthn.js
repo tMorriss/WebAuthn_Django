@@ -3,10 +3,10 @@ const conditionalUiController = new AbortController();
 
 function register(requireResidentKey) {
     $('#resultMsg').text("");
-    if (!isUVPAA) {
-        $('#resultMsg').text("isUVPAA is false");
-        return;
-    }
+    // if (!isUVPAA) {
+    //     $('#resultMsg').text("isUVPAA is false");
+    //     return;
+    // }
     var options = {
         "username": $("#register_username").val(),
         "requireResidentKey": requireResidentKey,
@@ -110,10 +110,10 @@ function generateQR() {
 
 function auth() {
     $('#resultMsg').text("");
-    if (!isUVPAA) {
-        $('#resultMsg').text("isUVPAA is false");
-        return;
-    }
+    // if (!isUVPAA) {
+    //     $('#resultMsg').text("isUVPAA is false");
+    //     return;
+    // }
     var options = {}
     if ($("#register_username").val() != "") {
         options["username"] = $("#register_username").val()
