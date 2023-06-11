@@ -50,7 +50,7 @@ function showList() {
             return;
         }
 
-        tblText = "<table><tr><th>削除</th><th>fmt</th><th>登録日</th><th>credentialId</th><th>transports</th></tr>";
+        tblText = "<table border='1'><tr><th>削除</th><th>fmt</th><th>登録日</th><th>credentialId</th><th>transports</th></tr>";
         for (let i = 0; i < responseJson.keys.length; i++) {
             tblText += "<tr id='key-" + responseJson.keys[i].pk + "'>"
                 + "<td><button onclick='deleteKey(" + responseJson.keys[i].pk + ")'>削除</button></td>"
