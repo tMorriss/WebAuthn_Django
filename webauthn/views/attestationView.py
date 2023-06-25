@@ -64,7 +64,7 @@ def attestation_options(request):
         "authenticatorSelection": {
             "authenticatorAttachment": "platform",
             "requireResidentKey": requireResidentKey,
-            "userVerification": "preferred"
+            "userVerification": "required"
         },
         "attestation": "direct"
     }
@@ -81,7 +81,7 @@ def attestation_options(request):
         options["excludeCredentials"].append({
             "type": "public-key",
             "id": c.credential_id,
-            "transports": json.loads(c.transports)
+            "transports": c.transports.split(',')
         })
 
     # challengeの保存
@@ -170,7 +170,7 @@ def attestation_result(request):
             fmt=attestation_object.fmt,
             credential_public_key=attestation_object.credential_public_key,
             sign_count=attestation_object.auth_data.sign_count,
-            transports=json.dumps(response['transports']),
+            transports=','.join(response['transports']),
             regTime=now
         )
 
