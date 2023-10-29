@@ -35,18 +35,18 @@ def key_list(request):
             user=user).order_by('regTime').reverse()
 
         # information取得
-        informations = AuthenticatorInformation.get()
+        informations = AuthenticatorInformation()
 
         response = []
         for k in keys:
-            info = informations[k.aaguid]
+            info = informations.get(k.aaguid)
             response.append({
                 'pk': k.pk,
                 'fmt': k.fmt,
                 'credentialId': k.credential_id,
                 'aaguid': k.aaguid,
-                'name': info['name'],
-                'icon': info['icon_light'],
+                'name': info['name'] if info is not None else '',
+                'icon': info['icon_light'] if info is not None else '',
                 'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S'),
                 'transports': k.transports,
             })

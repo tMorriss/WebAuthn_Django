@@ -53,6 +53,7 @@ def assertion_options(request):
                     "type": "public-key",
                     "id": c.credential_id,
                     "transports": c.transports.split(',')
+                    # "transports": ['internal']
                 })
 
         # challengeの保存
