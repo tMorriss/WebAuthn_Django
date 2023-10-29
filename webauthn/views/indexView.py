@@ -46,7 +46,8 @@ def key_list(request):
                 'credentialId': k.credential_id,
                 'aaguid': k.aaguid,
                 'name': info['name'] if info is not None else '',
-                'icon': info['icon_light'] if info is not None else '',
+                'icon_light': info['icon_light'] if info is not None else '',
+                'icon_dark': info['icon_dark'] if info is not None else '',
                 'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S'),
                 'transports': k.transports,
             })

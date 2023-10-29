@@ -50,7 +50,7 @@ function showList() {
             return;
         }
 
-        tblText = "<table border='1'><tr><th>削除</th><th>fmt</th><th>登録日</th><th>credentialId</th><th>認証器</th><th>icon</th><th>transports</th></tr>";
+        tblText = "<table border='1'><tr><th>削除</th><th>fmt</th><th>登録日</th><th>credentialId</th><th>認証器</th><th>icon(明)</th><th>icon(暗)</th><th>transports</th></tr>";
         for (let i = 0; i < responseJson.keys.length; i++) {
             tblText += "<tr id='key-" + responseJson.keys[i].pk + "'>"
                 + "<td><button onclick='deleteKey(" + responseJson.keys[i].pk + ")'>削除</button></td>"
@@ -58,7 +58,8 @@ function showList() {
                 + "<td>" + responseJson.keys[i].regTime + "</td>"
                 + "<td>" + responseJson.keys[i].credentialId + "</td>"
                 + "<td>" + responseJson.keys[i].name + " (" + responseJson.keys[i].aaguid + ")</td>"
-                + "<td><img width=\"50\" src=\"" + responseJson.keys[i].icon + "\"</img></td>"
+                + "<td><img width=\"50\" src=\"" + responseJson.keys[i].icon_light + "\"</img></td>"
+                + "<td style=\"background: black\"><img width=\"50\" src=\"" + responseJson.keys[i].icon_dark + "\"</img></td>"
                 + "<td>" + responseJson.keys[i].transports + "</td>"
                 + "</tr>";
         }
