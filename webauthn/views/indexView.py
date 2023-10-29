@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from webauthn.lib.exceptions import FormatException, InvalidValueException
+from webauthn.lib.authenticatorInformation import AuthenticatorInformation
 from webauthn.lib.response import Response
 from webauthn.lib.values import Values
 from webauthn.models import Key, User
@@ -33,12 +34,19 @@ def key_list(request):
         keys = Key.objects.filter(
             user=user).order_by('regTime').reverse()
 
+        # information取得
+        informations = AuthenticatorInformation.get()
+
         response = []
         for k in keys:
+            info = informations[k.aaguid]
             response.append({
                 'pk': k.pk,
                 'fmt': k.fmt,
                 'credentialId': k.credential_id,
+                'aaguid': k.aaguid,
+                'name': info['name'],
+                'icon': info['icon_light'],
                 'regTime': k.regTime.astimezone(gettz(TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S'),
                 'transports': k.transports,
             })
