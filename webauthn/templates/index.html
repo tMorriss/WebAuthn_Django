@@ -24,6 +24,8 @@
             ).then((result) => {
                 if (result) {
                     isUVPAA = true;
+                } else {
+                    $("#isUVPAAStatus").css('background-color', 'red');
                 }
                 $('#isUVPAAStatus').text(isUVPAA);
             });
@@ -34,6 +36,8 @@
                         $('#isCMAStatus').text(result);
                         if (result) {
                             fireConditionalUi();
+                        } else {
+                            $("#isCMAStatus").css('background-color', 'red');
                         }
                     });
             }
