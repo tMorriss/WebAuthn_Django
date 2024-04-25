@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebAuthn QR verifyテスト</title>
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <script src="{% static 'jquery-3.5.1.min.js' %}"></script>
+    <script src="{% static 'webauthn.js' %}"></script>
+    <script src="{% static 'http.js' %}"></script>
+    <script src="{% static 'utils.js' %}"></script>
+    <script>
+        var isUVPAA = false;
+
+        window.onload = function () {
+            // FIDO対応か確認
+            PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(
+            ).then((result) => {
+                if (result) {
+                    isUVPAA = true;
+                } else {
+                    $("body").css('background-color', 'red');
+                }
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <input type="username" id="register_username" value="tMorriss" /><br>
+    <input type="hidden" id="remote_challenge" value="{{ challenge }}" />
+    <button onclick="auth()">認証</button>
+</body>
+
+</html>

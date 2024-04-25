@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -8,61 +9,76 @@ from webauthn.lib.clientData import ClientData
 from webauthn.lib.exceptions import FormatException, InvalidValueException
 from webauthn.lib.publicKey import PublicKey
 from webauthn.lib.response import Response
-from webauthn.lib.utils import base64UrlDecode, generateId, stringToBase64Url
+from webauthn.lib.utils import base64_url_decode, generate_id, string_to_base64_url
 from webauthn.lib.values import Values
-from webauthn.models import Key, Session, User
+from webauthn.models import Key, RemoteSession, Session, User
 
 
 @csrf_exempt
 def assertion_options(request):
-    # POSTのみ受付
-    if request.method != 'POST':
-        return HttpResponse(Response.formatError("http method"))
+    try:
+        # POSTのみ受付
+        if request.method != 'POST':
+            return HttpResponse(Response.format_error("http method"))
 
-    post_data = json.loads(request.body)
+        post_data = json.loads(request.body)
 
-    challenge = generateId(Values.CHALLENGE_LENGTH)
-    options = {
-        "statusCode": Values.SUCCESS_CODE,
-        "challenge": challenge,
-        "timeout": Values.CREDENTIAL_TIMEOUT_MICROSECOND,
-        "rpId": Values.RP_ID,
-        "allowCredentials": [],
-        "userVerification": "required"
-    }
+        challenge = generate_id(Values.CHALLENGE_LENGTH)
+        options = {
+            "statusCode": Values.SUCCESS_CODE,
+            "challenge": challenge,
+            "timeout": Values.CREDENTIAL_TIMEOUT_MICROSECOND,
+            "rpId": Values.RP_ID,
+            "allowCredentials": [],
+            "userVerification": "required"
+        }
 
-    username = ""
-    user = None
+        username = ""
+        user = None
 
-    # 名前が渡ってきたときはallowCredentialsを入れる
-    # 指定されていないときはresidentKey
-    if "username" in post_data:
-        username = post_data['username']
+        # 名前が渡ってきたときはallowCredentialsを入れる
+        # 指定されていないときはresidentKey
+        if "username" in post_data:
+            username = post_data['username']
 
-        # ユーザの存在確認
-        users = User.objects.filter(name=username)
-        if users.count() <= 0:
-            raise InvalidValueException('username')
+            # ユーザの存在確認
+            try:
+                user = User.objects.get(name=username)
+            except User.DoesNotExist:
+                raise InvalidValueException('username')
 
-        user = users.first()
-        credentials = Key.objects.filter(user=users.first())
-        for c in credentials:
-            options['allowCredentials'].append({
-                "type": "public-key",
-                "id": c.credentialId,
-                "transports": json.loads(c.transports)
-            })
+            credentials = Key.objects.filter(user=user)
+            for c in credentials:
+                options['allowCredentials'].append({
+                    "type": "public-key",
+                    "id": c.credential_id,
+                    "transports": c.transports.split(',')
+                    # "transports": ['internal']
+                })
 
-    # challengeの保存
-    now = timezone.now()
-    Session.objects.create(challenge=stringToBase64Url(challenge),
-                           user=user, time=now, function="assertion")
+        # challengeの保存
+        now = timezone.now()
+        Session.objects.create(challenge=string_to_base64_url(challenge),
+                               user=user, time=now, function="assertion")
 
-    return HttpResponse(json.dumps(options))
+        # 古いセッションを削除
+        for s in Session.objects.all():
+            if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+                s.delete()
+        for s in RemoteSession.objects.all():
+            if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+                s.delete()
+
+        return HttpResponse(json.dumps(options))
+
+    except InvalidValueException as e:
+        return HttpResponse(Response.invalid_value_error(str(e)))
 
 
 @csrf_exempt
 def assertion_result(request):
+    now = timezone.now()
+
     try:
         # POSTのみ受付
         if request.method != 'POST':
@@ -87,18 +103,22 @@ def assertion_result(request):
             raise FormatException("response.signature")
 
         # clientDataの読み込み
-        clientData = ClientData(response['clientDataJSON'])
+        client_data = ClientData(response['clientDataJSON'])
         # 検証
-        clientData.validateGet()
+        client_data.validate_get()
         # challenge取得
-        challenge = clientData.challenge
+        challenge = client_data.challenge
 
         # challengeの確認
-        sessions = Session.objects.filter(
-            challenge=challenge, function="assertion")
-        if sessions.count() != 1:
+        try:
+            session = Session.objects.get(
+                challenge=challenge, function="assertion")
+        except Session.DoesNotExist:
             raise InvalidValueException("clientDataJson.challenge")
-        session = sessions.first()
+
+        # 時刻確認
+        if session.time >= now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            raise InvalidValueException("session timeout")
 
         # userの取得
         user = None
@@ -114,34 +134,47 @@ def assertion_result(request):
             user = session.user
 
         # authenticatorDataの検証
-        authData = AuthData(base64UrlDecode(response['authenticatorData']))
-        authData.validate()
+        auth_data = AuthData(base64_url_decode(response['authenticatorData']))
+        auth_data.validate()
 
         # 公開鍵の検証
-        pubKeys = Key.objects.filter(
-            user=user, credentialId=post_data['id'])
-        if len(pubKeys) != 1:
+        try:
+            pub_key = Key.objects.get(
+                user=user, credential_id=post_data['id'])
+        except Key.DoesNotExist:
             raise InvalidValueException('public key is missing')
-        pubKey = pubKeys[0]
-        dataToVerify = authData.authData + clientData.hash
+        data_to_verify = auth_data.auth_data + client_data.hash
         if not PublicKey.verify(
-                pubKey.credentialPublicKey,
-                dataToVerify,
-                base64UrlDecode(response['signature']),
-                pubKey.alg):
+                pub_key.credential_public_key,
+                data_to_verify,
+                base64_url_decode(response['signature']),
+                pub_key.alg):
             raise InvalidValueException('response.signature')
 
         # signCountの検証
-        if pubKey.fmt not in Values.SIGN_COUNT_IGNORE_LIST and pubKey.signCount >= authData.signCount:
+        if pub_key.sign_count != 0 and auth_data.sign_count != 0 and pub_key.sign_count >= auth_data.sign_count:
             raise InvalidValueException('signCount')
 
         # signCountの更新
-        pubKey.signCount = authData.signCount
-        pubKey.save()
+        pub_key.sign_count = auth_data.sign_count
+        pub_key.save()
 
-        return HttpResponse(Response.success({'username': pubKey.user.name}))
+        # RemoteChallengeがあったら更新
+        if 'remote_challenge' in post_data:
+            try:
+                s = RemoteSession.objects.get(
+                    challenge=post_data['remote_challenge'], user=user)
+                if s.time > now + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+                    raise InvalidValueException('remote_challenge')
+                s.verified = True
+                s.save()
+
+            except User.DoesNotExist:
+                raise InvalidValueException('remote_challenge')
+
+        return HttpResponse(Response.success({'username': pub_key.user.name}))
 
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
     except InvalidValueException as e:
-        return HttpResponse(Response.invalidValueError(str(e)))
+        return HttpResponse(Response.invalid_value_error(str(e)))

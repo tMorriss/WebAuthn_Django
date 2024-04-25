@@ -12,39 +12,40 @@ from webauthn.lib.exceptions import (FormatException,
                                      InvalidValueException,
                                      UnsupportedException)
 from webauthn.lib.response import Response
-from webauthn.lib.utils import generateId, stringToBase64Url
+from webauthn.lib.utils import generate_id, string_to_base64_url
 from webauthn.lib.values import Values
-from webauthn.models import Key, Session, User
+from webauthn.models import Key, RemoteSession, Session, User
 
 
 @csrf_exempt
 def attestation_options(request):
     # POSTのみ受付
     if request.method != 'POST':
-        return Response.formatError("http method")
+        return Response.format_error("http method")
 
     post_data = json.loads(request.body)
 
     if "username" not in post_data:
-        return HttpResponse(Response.formatError("username"))
+        return HttpResponse(Response.format_error("username"))
+    requireResidentKey = post_data['requireResidentKey'] if "requireResidentKey" in post_data else True
+
     username = post_data["username"]
     userid = hashlib.sha256(username.encode('utf-8')).hexdigest()
 
     # 名前が長かったらエラー
     if len(username) > Values.USERNAME_MAX_LENGTH:
-        return HttpResponse(Response.invalidValueError("username length"))
+        return HttpResponse(Response.invalid_value_error("username length"))
     # 名前が空だったらエラー
     if len(username) < 1:
-        return HttpResponse(Response.invalidValueError("empty username"))
+        return HttpResponse(Response.invalid_value_error("empty username"))
 
     # ユーザがいなかったら作成
-    users = User.objects.filter(name=username)
-    if users.count() <= 0:
+    try:
+        user = User.objects.get(name=username)
+    except User.DoesNotExist:
         user = User.objects.create(name=username, uid=userid)
-    else:
-        user = users.first()
 
-    challenge = generateId(Values.CHALLENGE_LENGTH)
+    challenge = generate_id(Values.CHALLENGE_LENGTH)
     options = {
         "statusCode": Values.SUCCESS_CODE,
         "rp": {
@@ -62,8 +63,8 @@ def attestation_options(request):
         "excludeCredentials": [],
         "authenticatorSelection": {
             "authenticatorAttachment": "platform",
-            "requireResidentKey": False,
-            "userVerification": "preferred"
+            "requireResidentKey": requireResidentKey,
+            "userVerification": "required"
         },
         "attestation": "direct"
     }
@@ -75,21 +76,24 @@ def attestation_options(request):
         })
 
     # excludeCredentials
-    excludeCredentials = Key.objects.filter(user=user)
-    for c in excludeCredentials:
+    exclude_credentials = Key.objects.filter(user=user)
+    for c in exclude_credentials:
         options["excludeCredentials"].append({
             "type": "public-key",
-            "id": c.credentialId,
-            "transports": ["internal"]
+            "id": c.credential_id,
+            "transports": c.transports.split(',')
         })
 
     # challengeの保存
     now = timezone.now()
-    Session.objects.create(challenge=stringToBase64Url(challenge),
+    Session.objects.create(challenge=string_to_base64_url(challenge),
                            user=user, time=now, function="attestation")
 
     # 古いセッションを削除
     for s in Session.objects.all():
+        if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
+            s.delete()
+    for s in RemoteSession.objects.all():
         if now > s.time + timedelta(minutes=Values.SESSION_TIMEOUT_MINUTE):
             s.delete()
 
@@ -119,35 +123,35 @@ def attestation_result(request):
             raise FormatException("response.transports")
 
         # clientDataの読み込み
-        clientData = ClientData(response['clientDataJSON'])
+        client_data = ClientData(response['clientDataJSON'])
         # 検証
-        clientData.validateCreate()
+        client_data.validate_create()
         # challenge取得
-        challenge = clientData.challenge
+        challenge = client_data.challenge
 
         # AttestationObjectの読み込み
         try:
-            attestationObject = AttestationObject(
+            attestation_object = AttestationObject(
                 response['attestationObject'])
         except UnicodeDecodeError:
             raise FormatException("attestationObject")
 
         # authDataの検証
-        attestationObject.authData.validate()
+        attestation_object.auth_data.validate()
 
         # attStmtの検証
-        attestationObject.validateAttStmt(clientData.hash)
+        attestation_object.validate_att_stmt(client_data.hash)
 
         # すでに登録済みか確認
-        if Key.objects.filter(credentialId=attestationObject.authData.credentialId).count() != 0:
+        if Key.objects.filter(credential_id=attestation_object.auth_data.credential_id).count() != 0:
             raise InvalidValueException("already registered")
 
         # challengeの確認
-        session = Session.objects.filter(
-            challenge=challenge, function="attestation")
-        if session.count() != 1:
+        try:
+            session = Session.objects.get(
+                challenge=challenge, function="attestation")
+        except Session.DoesNotExist:
             raise InvalidValueException("clientDataJson.challenge")
-        session = session.first()
 
         # 時刻確認
         now = timezone.now()
@@ -160,22 +164,22 @@ def attestation_result(request):
         # 保存
         Key.objects.create(
             user=session.user,
-            credentialId=attestationObject.authData.credentialId,
-            aaguid=attestationObject.authData.aaguid,
-            alg=attestationObject.alg,
-            fmt=attestationObject.fmt,
-            credentialPublicKey=attestationObject.credentialPublicKey,
-            signCount=attestationObject.authData.signCount,
-            transports=json.dumps(response['transports']),
+            credential_id=attestation_object.auth_data.credential_id,
+            aaguid=attestation_object.auth_data.aaguid,
+            alg=attestation_object.alg,
+            fmt=attestation_object.fmt,
+            credential_public_key=attestation_object.credential_public_key,
+            sign_count=attestation_object.auth_data.sign_count,
+            transports=','.join(response['transports']),
             regTime=now
         )
 
         return HttpResponse(Response.success({'username': session.user.name}))
     except FormatException as e:
-        return HttpResponse(Response.formatError(str(e)))
+        return HttpResponse(Response.format_error(str(e)))
     except InvalidValueException as e:
-        return HttpResponse(Response.invalidValueError(str(e)))
+        return HttpResponse(Response.invalid_value_error(str(e)))
     except UnsupportedException as e:
-        return HttpResponse(Response.unsupportedError(str(e)))
+        return HttpResponse(Response.unsupported_error(str(e)))
     except InternalServerErrorException as e:
-        return HttpResponse(Response.internalServerError(str(e)))
+        return HttpResponse(Response.internal_server_error(str(e)))

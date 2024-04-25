@@ -18,17 +18,17 @@ class Response:
         return Response.json("2000", "success", data)
 
     @staticmethod
-    def formatError(msg):
+    def format_error(msg):
         return Response.json("4001", "Format Error (" + msg + ")")
 
     @staticmethod
-    def invalidValueError(msg):
+    def invalid_value_error(msg):
         return Response.json("4002", "Invalid Value Error (" + msg + ")")
 
     @staticmethod
-    def unsupportedError(msg):
+    def unsupported_error(msg):
         return Response.json("4003", "Unsupported Error (" + msg + ")")
 
     @staticmethod
-    def internalServerError(msg):
+    def internal_server_error(msg):
         return Response.json("5001", "Internal Server Error (" + msg + ")")
