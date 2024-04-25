@@ -24,25 +24,26 @@
             ).then((result) => {
                 if (result) {
                     isUVPAA = true;
-                } else {
-                    $("body").css('background-color', 'red');
-                    $('#resultMsg').text("isUVPAA is false");
                 }
-                // Conditional UI対応判定
-                if (PublicKeyCredential.isConditionalMediationAvailable) {
-                    PublicKeyCredential.isConditionalMediationAvailable().then((result) => {
+                $('#isUVPAAStatus').text(isUVPAA);
+            });
+            // Conditional UI対応判定
+            if (PublicKeyCredential.isConditionalMediationAvailable) {
+                PublicKeyCredential.isConditionalMediationAvailable()
+                    .then((result) => {
+                        $('#isCMAStatus').text(result);
                         if (result) {
-                            $('#conditionalUiEnabled').text("conditional ui is enable");
                             fireConditionalUi();
                         }
                     });
-                }
-            });
+            }
         }
     </script>
 </head>
 
 <body>
+    isUserVerifyingPlatformAuthenticatorAvailable: <span id="isUVPAAStatus"></span><br>
+    isConditionalMediationAvailable: <span id="isCMAStatus"></span><br>
     <input type="username" id="register_username" value="tMorriss" autocomplete="webauthn" /><br>
     <button onclick="register(false)">NonResidentKey登録</button>&emsp;<button onclick="register(true)">ResidentKey登録</button><br>
     <button onclick="auth()">認証</button><br>
